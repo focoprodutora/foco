@@ -1,0 +1,811 @@
+/* Fontes */
+
+@font-face {
+  font-family: "Libre Franklin";
+  src: url("../fonts/LibreFranklin-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Libre Franklin";
+  src: url("../fonts/LibreFranklin-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --fonte-principal: "Libre Franklin", Arial, sans-serif;
+  --vermelho: #c62828;
+  --verde-whats: #199821;
+  --vermelho-escuro: #851b1b;
+  --azul: #0d47a1;
+  --azul-escuro: #08295d;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--fonte-principal);
+  line-height: 1.4;
+  color: var(--azul-escuro);
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+/* HEADER */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+
+  z-index: 1000;
+  background: #fff; /* ou a cor do header */
+}
+
+.navbar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 12px;
+  background: var(--vermelho-escuro);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Logo */
+.box-logo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nome-logo-header {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.box-btns-header {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+/* Menu mobile */
+/* Menu fechado */
+.ul-header {
+  list-style: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 260px;
+  background: var(--vermelho);
+  padding: 30px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 999;
+}
+
+/* Menu aberto */
+.ul-header.active {
+  transform: translateX(0);
+}
+
+.item-li {
+  border-bottom: 1px solid #eee;
+}
+
+.link-item-li {
+  display: block;
+  padding: 14px 0;
+  text-decoration: none;
+  color: white;
+  font-size: 16px;
+}
+
+/* Botão fechar dentro do menu */
+.item-fechar {
+  border-bottom: none;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.btn-fechar-menu {
+  background: none;
+  border: none;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+}
+
+/* Botão hamburguer */
+.btn-menu-header {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-menu-header img {
+  transition: transform 0.3s;
+}
+
+/* CTA escondido no mobile */
+.cta-header {
+  display: none;
+}
+
+/* HERO SECTION */
+
+.hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 20px;
+  min-height: 96vh;
+  overflow: hidden;
+}
+
+/* O picture só posiciona */
+.img-hero-section {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* AQUI é onde controla a imagem */
+.img-hero-section img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 👈 tem que ser cover */
+  object-position: right center; /* 👈 fixa na direita */
+}
+
+/* GRADIENTE POR CIMA DA IMAGEM */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    #a52121 80%,
+    #5d1111 100%
+  );
+  z-index: 1;
+}
+
+/* CONTEÚDO POR CIMA DE TUDO */
+.box-conteudo-hero {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+}
+
+.subtit-hero {
+  margin: 8px 0;
+}
+
+.btn-cta-hero {
+  display: block;
+  padding: 12px 8px;
+  background-color: white;
+  color: var(--vermelho-escuro);
+  text-decoration: none;
+  border-radius: 8px;
+  text-align: center;
+  margin: 2vh 0;
+  max-width: 300px;
+  font-weight: 700;
+  transition: transform 0.2s ease-in-out;
+}
+
+.btn-cta-hero:hover {
+  transform: scale(1.03);
+}
+
+.ticker {
+  width: 100%;
+  overflow: hidden;
+  background: var(--azul);
+  padding: 8px 0;
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 40s linear infinite;
+}
+
+.ticker-track span {
+  white-space: nowrap;
+  padding-right: 4px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: #fff;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* SOBRE */
+
+.sobre {
+  scroll-margin-top: 9vh;
+  text-align: center;
+}
+
+.box-conteudo-sobre {
+  text-align: start;
+}
+
+.tit-sobre,
+.text-sobre {
+  margin: 20px 40px 0 20px;
+}
+
+.text-sobre-destaque {
+  font-weight: 700;
+}
+
+.box-img-sobre {
+  overflow: hidden;
+  width: 90%;
+  max-width: 400px;
+  align-items: center;
+  justify-content: center;
+  margin: 0px auto;
+}
+
+.box-img-sobre img {
+  display: block;
+  margin-top: 20px;
+  border: 4px solid var(--azul-escuro);
+  border-radius: 8px;
+  width: 100%;
+  height: auto;
+}
+
+/* DIFERENCIAIS */
+
+.diferenciais {
+  scroll-margin-top: 7vh;
+  margin: 24px 0;
+  padding: 24px 20px;
+  background: linear-gradient(180deg, #851b1b 0%, #390a0a 100%);
+  text-align: center;
+}
+
+.tit-diferenciais {
+  color: white;
+}
+
+.card-diferenciais {
+  text-align: start;
+  margin: 24px 0;
+  padding: 32px 24px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #d6d6d6 100%);
+  box-shadow: 2px 6px 6px rgba(0, 0, 0, 0.25);
+}
+
+.text-diferenciais {
+  margin-top: 12px;
+}
+
+/* PRODUTOS */
+
+.produtos {
+  scroll-margin-top: 9vh;
+}
+
+.box-conteudo-principal-produtos {
+  padding: 0px 20px 24px;
+}
+
+.subtit-produtos {
+  margin-top: 20px;
+}
+
+.img-produtos {
+  display: block;
+  width: 95%;
+  max-width: 550px;
+  height: auto;
+  margin: 24px auto;
+}
+
+.box-lista-produtos {
+  margin: 20px 20px;
+}
+
+.tit-lista-produtos {
+  margin-bottom: 12px;
+}
+
+.lista-produtos {
+  margin-left: 20px;
+}
+
+/* COMO COMPRAR */
+
+.como-comprar {
+  scroll-margin-top: 7vh;
+  background: linear-gradient(#0d47a1, #08306b);
+  color: #fff;
+  padding: 24px 20px;
+}
+
+.como-comprar h2 {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.como-comprar .subtit-como-comprar {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.passos {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  position: relative;
+}
+
+.passo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+
+.passo::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: -32px;
+  width: 2px;
+  height: 32px;
+  background: white;
+}
+
+.passo:first-child::before {
+  display: none;
+}
+
+.numero {
+  width: 40px;
+  height: 40px;
+  border: 2px solid white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.passo p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.card-informacoes-como-comprar {
+  border-radius: 16px;
+  background: linear-gradient(180deg, #c62828 0%, #3c0b0b 100%);
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  padding: 24px 16px;
+}
+
+.card-info-1 {
+  margin: 20px 0 16px;
+}
+
+/* CTA FINAL */
+
+.cta-final {
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.text-cta-final {
+  margin-top: 16px;
+}
+
+.btn-cta-final {
+  display: block;
+  padding: 12px 8px;
+  background-color: var(--azul);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  text-align: center;
+  margin: 24px auto 0px;
+  max-width: 300px;
+  font-weight: 700;
+  transition: transform 0.2s ease-in-out;
+}
+
+.btn-cta-final:hover {
+  transform: scale(1.03);
+}
+
+.whatsapp-float {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  background: #25d366;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.whatsapp-float:hover {
+  background: #1ea952;
+  transform: scale(1.1);
+}
+
+.whatsapp-float:active {
+  transform: scale(0.95);
+}
+
+.whatsapp-icon {
+  width: 30px;
+  height: 30px;
+}
+
+/* FOOTER */
+
+.footer {
+  background: linear-gradient(180deg, #001636, #00040c);
+  color: #fff;
+  padding: 40px 24px 24px;
+  font-size: 14px;
+}
+
+.box-logo-final-footer {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.img-logo-final {
+  width: 50px;
+  margin-bottom: 8px;
+}
+
+.slogan-final {
+  font-size: 14px;
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.footer-col h4 {
+  margin: 24px 0 12px;
+}
+
+.footer-col p {
+  margin: 6px 0;
+  line-height: 1.4;
+  color: #ffffffb1;
+}
+
+.footer-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-col ul li {
+  margin-bottom: 8px;
+}
+
+.footer-col a {
+  color: #fff;
+  text-decoration: none;
+  color: #ffffffb1;
+}
+
+.footer-col a:hover {
+  text-decoration: underline;
+}
+
+.footer-bottom {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 12px;
+  opacity: 0.85;
+  color: #ffffffb1;
+}
+
+.link-empresas-footer {
+  color: #ffffffb1;
+}
+.link-empresas-footer:hover {
+  color: #fff;
+}
+
+.animar-direita {
+  opacity: 0;
+  transform: translateX(60px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.animar-direita.ativo {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Responsividade - Mobile 375px+ */
+@media (min-width: 375px) {
+  .box-logo-header {
+    gap: 16px;
+  }
+  .nome-logo-header {
+    font-size: 16px;
+  }
+}
+/* Responsividade - Tablet 768px */
+@media (min-width: 768px) {
+  .box-cards-diferenciais {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+
+  .card-diferenciais {
+    width: 40%;
+    max-width: 480px;
+    margin: 24px auto;
+  }
+
+  .card-informacoes-como-comprar {
+    width: 70%;
+    max-width: 550px;
+    margin: 24px auto;
+  }
+
+  .footer-content {
+    flex-direction: row;
+  }
+
+  .box-principal-footer {
+    display: flex;
+    gap: 24px;
+    margin: 0 auto;
+    justify-content: space-around;
+    max-width: 900px;
+  }
+
+  .box-logo-final-footer {
+    margin: 0;
+    align-content: center;
+  }
+}
+
+/* Responsividade - Desktop 1024px+ */
+@media (min-width: 1024px) {
+  .navbar-header {
+    padding: 12px 42px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.121);
+  }
+
+  /* Menu normal */
+  .ul-header {
+    position: static;
+    transform: none;
+    height: auto;
+    width: auto;
+    flex-direction: row;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    gap: 12px;
+  }
+
+  .item-li {
+    border: none;
+  }
+
+  .item-fechar {
+    display: none;
+  }
+
+  .link-item-li {
+    color: #fff;
+    font-size: 14px;
+    padding: 0;
+  }
+
+  .link-item-li:hover {
+    color: #fefefe;
+  }
+
+  .hero {
+    align-items: center;
+    padding-left: 10vw;
+  }
+
+  .hero::before {
+    background: linear-gradient(
+      to left,
+      rgba(255, 255, 255, 0) 0%,
+      rgb(151, 31, 31) 80%,
+      rgb(93, 17, 17) 100%
+    );
+  }
+
+  /* CTA */
+  .cta-header {
+    display: block;
+    font-size: 16px;
+    display: inline-block;
+    background: white;
+    color: var(--vermelho);
+    padding: 6px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: transform 0.2s ease-in-out;
+    font-weight: 700;
+  }
+
+  .cta-header:hover {
+    transform: scale(1.05);
+  }
+
+  /* Esconde botão menu */
+  .btn-menu-header {
+    display: none;
+  }
+  .tit-hero {
+    max-width: 50vw;
+    font-size: 3vw;
+  }
+  .subtit-hero {
+    max-width: 50vw;
+    font-size: 1.5vw;
+  }
+
+  .btn-cta-hero {
+    max-width: 38vw;
+  }
+
+  .sobre {
+    display: flex;
+    padding: 32px 5vw;
+  }
+
+  .box-conteudo-sobre {
+    align-content: center;
+  }
+
+  .box-img-sobre {
+    align-content: center;
+  }
+
+  .card-diferenciais {
+    width: 23%;
+  }
+
+  .produtos {
+    display: flex;
+    gap: 24px;
+    margin: 48px 0;
+  }
+
+  .conteudo-produtos {
+    align-content: center;
+  }
+
+  .conteudo-como-comprar {
+    display: flex;
+    gap: 48px;
+    max-width: 1400px;
+    margin: 0 auto 24px;
+  }
+
+  .passos {
+    gap: 48px;
+    width: 620px;
+    margin: 0 auto;
+  }
+
+  .passo {
+    gap: 12px;
+    flex: 1;
+    width: auto;
+  }
+
+  .passo::before {
+    top: -40px;
+  }
+
+  .box-cards-informacoes-como-comprar {
+    display: flex;
+    gap: 24px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .ul-header {
+    gap: 24px;
+  }
+}
+
+@media (min-width: 1640px) {
+  .navbar-header {
+    padding: 12px 15vw;
+  }
+
+  .hero {
+    padding: 2vh 10vw;
+  }
+
+  .sobre {
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  .box-img-sobre img {
+    border-radius: 8px;
+    border-right: solid;
+  }
+
+  .box-cards-diferenciais {
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  .produtos {
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  .img-produtos {
+    border-radius: 8px;
+    border-left: solid;
+  }
+}
