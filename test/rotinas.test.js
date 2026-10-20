@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { montar } from "./ajuda.js";
 import { alertarSuporteParado, enviarLembretes, montarResumoDiario } from "../src/lembretes.js";
 import { lerWebhookEvolution } from "../src/whatsapp.js";
+import { agoraLocal } from "../src/util.js";
 
 test("lembretes de 24h e de 1h saem uma vez cada", async () => {
   const { repo } = montar();
@@ -33,12 +34,13 @@ test("remarcar zera os lembretes e cancelar impede o envio", async () => {
 test("resumo diário e alerta de atendimento parado", async () => {
   const { repo } = montar();
   const p = repo.criarPessoa({ tipo: "mentorada", nome: "Bia", estado: "PE", cidade: "Recife" });
-  repo.criarAgendamento({ pessoa_id: p.id, inicio: "2026-10-20T15:00" });
+  const hoje = agoraLocal().slice(0, 10);
+  repo.criarAgendamento({ pessoa_id: p.id, inicio: `${hoje}T15:00` });
   const t = repo.criarTicket({ telefone: "5511988887777", nome: "Paula" });
   repo.registrarMensagem({ ticket_id: t.id, telefone: t.telefone, direcao: "entrada", texto: "oi" });
   repo.atualizarTicket(t.id, { prioridade: "alta", resumo: "Quer remarcar" });
 
-  const resumo = montarResumoDiario({ repo, agora: "2026-10-20T07:00" });
+  const resumo = montarResumoDiario({ repo }); // as mensagens do teste têm o horário real
   assert.match(resumo, /15:00 Bia \(Recife\/PE\)/);
   assert.match(resumo, /1 em aberto, 1 esperando resposta/);
 

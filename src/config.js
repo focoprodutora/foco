@@ -13,7 +13,10 @@ function lista(valor) {
 }
 
 export const config = {
-  porta: Number(env.PORTA || 3000),
+  porta: Number(env.PORTA || env.PORT || 3000),
+  // Endereço em que a Evolution API encontra esta aplicação (para o webhook).
+  // No Railway é preenchido sozinho a partir do domínio público do serviço.
+  urlPublica: (env.URL_PUBLICA || (env.RAILWAY_PUBLIC_DOMAIN ? `https://${env.RAILWAY_PUBLIC_DOMAIN}` : "")).replace(/\/$/, ""),
   bancoDeDados: env.BANCO_DE_DADOS || "dados/secretaria.db",
   senhaPainel: env.PAINEL_SENHA || "",
   tokenWebhook: env.WEBHOOK_TOKEN || "",

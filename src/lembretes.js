@@ -64,10 +64,12 @@ export async function alertarSuporteParado({ repo, avisar, horas, agora = agoraL
 }
 
 /** Roda as rotinas uma vez por minuto. */
-export function iniciarRotinas({ repo, secretaria, config }) {
+export function iniciarRotinas({ repo, secretaria, whatsapp, config }) {
   async function rodar() {
     const agora = agoraLocal();
     try {
+      // Sem o número conectado, nada sairia: espera a conexão para não perder o resumo do dia.
+      if ((await whatsapp.estado()) !== "open") return;
       await enviarLembretes({ repo, enviar: secretaria.enviarWhatsapp, agora });
       await alertarSuporteParado({ repo, avisar: secretaria.avisarEquipe, horas: config.suporte.alertaHoras, agora });
 

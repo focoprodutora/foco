@@ -143,3 +143,12 @@ dialog::backdrop { background: rgb(0 0 0 / .4); }
 #form-dialogo { display: grid; gap: .65rem; }
 #form-dialogo label { display: grid; gap: .25rem; font-size: .9rem; }
 #form-dialogo .acoes { display: flex; gap: .5rem; justify-content: flex-end; }
+
+.whatsapp { margin-bottom: 1rem; display: grid; gap: .6rem; }
+.whatsapp .status { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+.whatsapp .ponto { width: .65rem; height: .65rem; border-radius: 50%; background: var(--amarelo); }
+.whatsapp .ponto.ok { background: var(--verde); }
+.whatsapp .ponto.erro { background: var(--vermelho); }
+.whatsapp img { width: min(260px, 100%); background: #fff; padding: 8px; border-radius: 8px; }
+.whatsapp .codigo { font: 700 1.8rem/1.2 ui-monospace, monospace; letter-spacing: .2em; color: var(--destaque); }
+.whatsapp ol { margin: 0; padding-left: 1.2rem; }

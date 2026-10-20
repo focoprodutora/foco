@@ -56,7 +56,7 @@ function validarPessoa(corpo, parcial = false) {
   if (corpo.telefone) exigir(normalizarTelefone(corpo.telefone), "telefone inválido (use DDD + número)");
 }
 
-export function criarApp({ repo, secretaria, config }) {
+export function criarApp({ repo, secretaria, whatsapp, config }) {
   const rotas = [];
   const rota = (metodo, padrao, fn) => rotas.push({ metodo, padrao: new RegExp(`^${padrao}$`), fn });
 
@@ -67,6 +67,31 @@ export function criarApp({ repo, secretaria, config }) {
     const msg = lerWebhookEvolution(corpo);
     if (msg) secretaria.receber(msg).catch((e) => console.error("[mensagem]", e));
     return { ok: true };
+  });
+
+  // ---------- Conexão do WhatsApp ----------
+
+  rota("GET", "/api/whatsapp", async () => {
+    if (!whatsapp?.configurado) return { configurado: false };
+    try {
+      return { configurado: true, estado: await whatsapp.estado(), instancia: config.evolution.instancia };
+    } catch (e) {
+      return { configurado: true, estado: "erro", erro: `Não consegui falar com a Evolution API: ${e.message}` };
+    }
+  });
+
+  rota("POST", "/api/whatsapp/conectar", async ({ corpo }) => {
+    if (!whatsapp?.configurado) throw new ErroHttp(400, "Preencha EVOLUTION_URL, EVOLUTION_CHAVE e EVOLUTION_INSTANCIA antes de conectar.");
+    if (!config.urlPublica) throw new ErroHttp(400, "Preencha URL_PUBLICA com o endereço desta aplicação antes de conectar.");
+    if (!config.tokenWebhook) throw new ErroHttp(400, "Preencha WEBHOOK_TOKEN antes de conectar.");
+    const numero = corpo.telefone ? normalizarTelefone(corpo.telefone) : null;
+    if (corpo.telefone) exigir(numero, "telefone inválido (use DDD + número)");
+    const urlWebhook = `${config.urlPublica}/webhook/evolution?token=${encodeURIComponent(config.tokenWebhook)}`;
+    try {
+      return await whatsapp.conectar({ urlWebhook, numero });
+    } catch (e) {
+      throw new ErroHttp(502, `A Evolution API recusou o pedido: ${e.message}`);
+    }
   });
 
   // ---------- Painel ----------
@@ -188,6 +213,7 @@ export function criarApp({ repo, secretaria, config }) {
   async function tratar(req, res) {
     const url = new URL(req.url, "http://localhost");
     try {
+      if (url.pathname === "/saude") return responder(res, 200, { ok: true });
       if (req.method === "GET" && !url.pathname.startsWith("/api/") && !url.pathname.startsWith("/webhook/")) {
         return await servirArquivo(url.pathname, res);
       }

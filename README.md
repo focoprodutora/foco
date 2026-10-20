@@ -46,37 +46,22 @@ WhatsApp ──► Evolution API ──► esta aplicação ──┬─► núm
 
 ## Colocando no ar
 
-### 1. Contas e chaves
-1. **Claude:** crie uma chave em <https://platform.claude.com>.
-2. **Transcrição:** chave da OpenAI (<https://platform.openai.com/api-keys>) ou da Groq (<https://console.groq.com>).
-3. **WhatsApp:** uma Evolution API rodando, com uma instância conectada ao número da secretária
-   (de preferência um chip só para isso, não o seu pessoal).
+O passo a passo completo, para quem não é técnico, está em **[INSTALACAO.md](INSTALACAO.md)**:
+chaves de IA → servidor no Railway → Evolution API → conectar o número pelo painel (código de 8 letras ou QR Code).
 
-### 2. Instalar
+### Rodar no seu computador (para testar)
 Precisa do Node.js 22.13 ou mais novo.
 
 ```bash
 npm install
-cp .env.example .env     # depois abra o .env e preencha
+cp .env.example .env     # preencha pelo menos PAINEL_SENHA e ANTHROPIC_API_KEY
 npm start
 ```
 
-Abra `http://localhost:3000` e entre com a `PAINEL_SENHA`.
+Abra `http://localhost:3000`, entre com a `PAINEL_SENHA` e use a aba **Testar**: escreva ou grave um áudio como
+se fosse alguém da equipe ou uma mentorada. As respostas aparecem na tela e **não** são enviadas para ninguém.
 
-### 3. Testar antes de ligar o WhatsApp
-Na aba **Testar** do painel, escreva ou grave um áudio como se fosse alguém da equipe ou uma mentorada.
-As respostas aparecem na tela e **não** são enviadas para ninguém.
-
-### 4. Ligar o WhatsApp
-Na Evolution API, configure o webhook da instância:
-- **URL:** `https://SEU-SERVIDOR/webhook/evolution?token=SEU_WEBHOOK_TOKEN`
-- **Eventos:** `MESSAGES_UPSERT`
-- **Webhook base64:** ligado (assim o áudio já chega junto; se ficar desligado, a aplicação baixa o áudio sozinha)
-
-O servidor precisa estar acessível pela internet (ex.: Railway, Render, uma VPS). O arquivo `dados/secretaria.db`
-precisa ficar num disco que não se apaga a cada atualização: faça backup dele.
-
-### 5. Ensinar o suporte
+### Ensinar o suporte
 Edite o `faq.md` com as informações oficiais (horários, como remarcar, próximas palestras, pagamentos).
 A secretária só responde o que estiver lá. O resto ela passa para a equipe.
 
@@ -100,5 +85,6 @@ Estrutura:
 - `src/ia/suporte.js`: triagem do suporte
 - `src/lembretes.js`: lembretes, resumo diário e alertas
 - `src/db.js`: banco de dados
-- `src/app.js`: webhook e API do painel
+- `src/app.js`: webhook, API do painel e conexão do WhatsApp
+- `src/whatsapp.js`: integração com a Evolution API
 - `public/`: painel

@@ -8,11 +8,12 @@ import { criarClienteEvolution } from "./whatsapp.js";
 import { iniciarRotinas } from "./lembretes.js";
 
 const repo = abrirBanco(config.bancoDeDados);
+const whatsapp = criarClienteEvolution(config.evolution);
 const secretaria = criarSecretaria({
   repo,
   claude: new Anthropic(),
   transcrever: criarTranscritor(config.transcricao),
-  whatsapp: criarClienteEvolution(config.evolution),
+  whatsapp,
   config,
 });
 
@@ -21,11 +22,12 @@ if (!config.senhaPainel) avisos.push("PAINEL_SENHA não definida: o painel fica 
 if (!config.tokenWebhook) avisos.push("WEBHOOK_TOKEN não definido: o WhatsApp não consegue entregar mensagens.");
 if (!config.numerosEquipe.length) avisos.push("NUMEROS_EQUIPE vazio: toda mensagem vai para o suporte.");
 if (!secretaria.whatsappConfigurado) avisos.push("Evolution API não configurada: use o Simulador do painel para testar.");
+if (secretaria.whatsappConfigurado && !config.urlPublica) avisos.push("URL_PUBLICA não definida: o botão Conectar WhatsApp do painel não vai funcionar.");
 if (!config.transcricao.chave) avisos.push("TRANSCRICAO_CHAVE não definida: áudios não serão entendidos.");
 
-criarApp({ repo, secretaria, config }).listen(config.porta, () => {
+criarApp({ repo, secretaria, whatsapp, config }).listen(config.porta, () => {
   console.log(`Secretária rodando em http://localhost:${config.porta}`);
   for (const a of avisos) console.log(`  ⚠ ${a}`);
 });
 
-if (secretaria.whatsappConfigurado) iniciarRotinas({ repo, secretaria, config });
+if (secretaria.whatsappConfigurado) iniciarRotinas({ repo, secretaria, whatsapp, config });

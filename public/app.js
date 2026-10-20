@@ -116,11 +116,13 @@ async function carregarGeral() {
   const estadosAtivos = Object.keys(est).filter((uf) => ESTADOS[uf] && (est[uf].mentoradas || est[uf].mentores || est[uf].eventos)).length;
 
   const avisos = [];
-  if (!r.integracoes.whatsapp) avisos.push("WhatsApp ainda não conectado. Use a aba <b>Testar</b> enquanto isso.");
+  if (!r.integracoes.whatsapp) avisos.push("WhatsApp ainda não configurado (EVOLUTION_URL, EVOLUTION_CHAVE, EVOLUTION_INSTANCIA). Use a aba <b>Testar</b> enquanto isso.");
   if (!r.integracoes.transcricao) avisos.push("Transcrição de áudio não configurada (TRANSCRICAO_CHAVE).");
   if (!r.integracoes.claude) avisos.push("Chave da IA não configurada (ANTHROPIC_API_KEY).");
   if (!r.integracoes.equipe) avisos.push("Nenhum número da equipe cadastrado (NUMEROS_EQUIPE): tudo vai para o suporte.");
   $("#avisos").innerHTML = avisos.map((a) => `<div class="aviso">${a}</div>`).join("");
+
+  if (r.integracoes.whatsapp) carregarWhatsapp();
 
   $("#kpis").innerHTML = [
     [total("mentoradas_ativas"), "mentoradas ativas"],
@@ -153,6 +155,66 @@ $("#mapa-estados").addEventListener("click", (e) => {
   $("#filtro-estado").value = b.dataset.uf;
   abrirAba("pessoas");
 });
+
+// ---------- conexão do WhatsApp ----------
+
+let esperaConexao = null;
+let ultimaConexao = null; // mantém o código na tela quando o painel se atualiza sozinho
+
+async function carregarWhatsapp(conexao = ultimaConexao) {
+  ultimaConexao = conexao;
+  const caixa = $("#whatsapp");
+  const w = await api("/api/whatsapp");
+  if (!w.configurado) { caixa.hidden = true; return; }
+  caixa.hidden = false;
+
+  if (w.estado === "open") {
+    clearInterval(esperaConexao);
+    esperaConexao = null;
+    ultimaConexao = null;
+    caixa.innerHTML = `<div class="status"><span class="ponto ok"></span>WhatsApp conectado</div>`;
+    return;
+  }
+  if (w.estado === "erro") {
+    caixa.innerHTML = `<div class="status"><span class="ponto erro"></span>WhatsApp com problema</div><p class="sutil">${esc(w.erro)}</p>`;
+    return;
+  }
+
+  let instrucoes = "";
+  if (conexao?.codigoPareamento) {
+    instrucoes = `<p>No celular do número da secretária: <b>WhatsApp → Aparelhos conectados → Conectar aparelho → Conectar com número de telefone</b> e digite:</p>
+      <div class="codigo">${esc(conexao.codigoPareamento)}</div>`;
+  } else if (conexao?.qrBase64) {
+    const src = conexao.qrBase64.startsWith("data:") ? conexao.qrBase64 : `data:image/png;base64,${conexao.qrBase64}`;
+    instrucoes = `<p>No celular do número da secretária: <b>WhatsApp → Aparelhos conectados → Conectar aparelho</b> e aponte para o código:</p>
+      <img alt="QR Code do WhatsApp" src="${esc(src)}">`;
+  }
+
+  caixa.innerHTML = `<div class="status"><span class="ponto"></span>WhatsApp desconectado</div>
+    ${instrucoes || `<p class="sutil">Use o celular com o chip da secretária. Digite o número para receber um código de 8 letras,
+      ou deixe em branco para usar QR Code.</p>`}
+    <form id="form-conectar" class="filtros" style="margin:0">
+      <input name="telefone" placeholder="Número da secretária com DDD (opcional)" value="${esc(conexao?.telefone || "")}">
+      <button type="submit">${instrucoes ? "Gerar outro código" : "Conectar WhatsApp"}</button>
+    </form>
+    <p class="erro" id="erro-conectar"></p>`;
+
+  $("#form-conectar").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const telefone = e.target.telefone.value.trim();
+    e.submitter.disabled = true;
+    try {
+      const r = await api("/api/whatsapp/conectar", { metodo: "POST", corpo: { telefone: telefone || undefined } });
+      await carregarWhatsapp({ ...r, telefone });
+      // Confere a cada 5s se o celular já conectou.
+      clearInterval(esperaConexao);
+      esperaConexao = setInterval(() => carregarWhatsapp().catch(() => {}), 5000);
+    } catch (err) {
+      $("#erro-conectar").textContent = err.message;
+      e.submitter.disabled = false;
+    }
+  });
+}
 
 // ---------- suporte ----------
 

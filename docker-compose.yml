@@ -1,0 +1,66 @@
+# Sobe tudo num servidor próprio (VPS): a secretária + a Evolution API (WhatsApp) + Postgres e Redis da Evolution.
+# Uso: preencha o .env (veja .env.example) e rode:  docker compose up -d
+# O painel fica na porta 3000. Coloque um domínio com HTTPS na frente (ex.: Caddy, Nginx) antes de usar de verdade.
+
+services:
+  secretaria:
+    build: .
+    restart: always
+    env_file: .env
+    environment:
+      # Dentro do Docker, a secretária e a Evolution se falam pela rede interna.
+      EVOLUTION_URL: http://evolution:8080
+      URL_PUBLICA: http://secretaria:3000
+      BANCO_DE_DADOS: dados/secretaria.db
+    ports:
+      - "3000:3000"
+    volumes:
+      - secretaria_dados:/app/dados
+    depends_on:
+      - evolution
+
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    restart: always
+    environment:
+      SERVER_TYPE: http
+      SERVER_PORT: 8080
+      SERVER_URL: http://evolution:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_CHAVE:?preencha EVOLUTION_CHAVE no .env}
+      DEL_INSTANCE: "false"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:${POSTGRES_SENHA:?preencha POSTGRES_SENHA no .env}@postgres:5432/evolution?schema=evolution_api
+      DATABASE_CONNECTION_CLIENT_NAME: secretaria
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/6
+      CACHE_LOCAL_ENABLED: "false"
+      CONFIG_SESSION_PHONE_CLIENT: Secretaria
+      CONFIG_SESSION_PHONE_NAME: Chrome
+    volumes:
+      - evolution_instancias:/evolution/instances
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: evolution
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${POSTGRES_SENHA}
+    volumes:
+      - postgres_dados:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dados:/data
+
+volumes:
+  secretaria_dados:
+  evolution_instancias:
+  postgres_dados:
+  redis_dados:

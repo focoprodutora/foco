@@ -47,23 +47,32 @@ export function lerWebhookEvolution(corpo) {
 export function criarClienteEvolution({ url, chave, instancia }) {
   const configurado = Boolean(url && chave && instancia);
 
-  async function chamar(caminho, corpo) {
-    const resposta = await fetch(`${url}${caminho}/${encodeURIComponent(instancia)}`, {
-      method: "POST",
+  async function chamar(caminho, corpo, { metodo = "POST", semInstancia = false, consulta = "" } = {}) {
+    const alvo = semInstancia ? caminho : `${caminho}/${encodeURIComponent(instancia)}`;
+    const resposta = await fetch(`${url}${alvo}${consulta}`, {
+      method: metodo,
       headers: { "Content-Type": "application/json", apikey: chave },
-      body: JSON.stringify(corpo),
+      body: corpo ? JSON.stringify(corpo) : undefined,
     });
     if (!resposta.ok) {
-      throw new Error(`Evolution API ${caminho} respondeu ${resposta.status}: ${await resposta.text()}`);
+      const erro = new Error(`Evolution API ${caminho} respondeu ${resposta.status}: ${await resposta.text()}`);
+      erro.status = resposta.status;
+      throw erro;
     }
     return resposta.json();
   }
+
+  function exigirConfiguracao() {
+    if (!configurado) throw new Error("WhatsApp não configurado (EVOLUTION_URL, EVOLUTION_CHAVE, EVOLUTION_INSTANCIA).");
+  }
+
+  const webhook = (urlWebhook) => ({ enabled: true, url: urlWebhook, byEvents: false, base64: true, events: ["MESSAGES_UPSERT"] });
 
   return {
     configurado,
 
     async enviarTexto(telefone, texto) {
-      if (!configurado) throw new Error("WhatsApp não configurado (EVOLUTION_URL, EVOLUTION_CHAVE, EVOLUTION_INSTANCIA).");
+      exigirConfiguracao();
       return chamar("/message/sendText", { number: String(telefone).replace(/\D/g, ""), text: texto });
     },
 
@@ -71,6 +80,41 @@ export function criarClienteEvolution({ url, chave, instancia }) {
     async baixarMidia(chaveMensagem) {
       const r = await chamar("/chat/getBase64FromMediaMessage", { message: { key: chaveMensagem }, convertToMp4: false });
       return { base64: r.base64, mimetype: r.mimetype || "audio/ogg" };
+    },
+
+    /** "open" (conectado), "connecting", "close" ou "inexistente" (instância ainda não criada). */
+    async estado() {
+      exigirConfiguracao();
+      try {
+        const r = await chamar("/instance/connectionState", null, { metodo: "GET" });
+        return r?.instance?.state || "inexistente";
+      } catch (e) {
+        if (e.status === 404 || e.status === 400) return "inexistente";
+        throw e;
+      }
+    },
+
+    /**
+     * Cria a instância (se preciso), aponta o webhook para esta aplicação e pede a conexão.
+     * Com `numero`, a Evolution devolve um código de pareamento para digitar no celular;
+     * sem número, devolve o QR Code. Retorna { estado, qrBase64, codigoPareamento }.
+     */
+    async conectar({ urlWebhook, numero }) {
+      exigirConfiguracao();
+      if ((await this.estado()) === "inexistente") {
+        await chamar("/instance/create", {
+          instanceName: instancia,
+          integration: "WHATSAPP-BAILEYS",
+          qrcode: false,
+          groupsIgnore: true,
+          webhook: webhook(urlWebhook),
+        }, { semInstancia: true });
+      }
+      await chamar("/webhook/set", { webhook: webhook(urlWebhook) });
+      if ((await this.estado()) === "open") return { estado: "open" };
+      const consulta = numero ? `?number=${encodeURIComponent(numero)}` : "";
+      const r = await chamar("/instance/connect", null, { metodo: "GET", consulta });
+      return { estado: r?.instance?.state || "connecting", qrBase64: r?.base64 || null, codigoPareamento: r?.pairingCode || null };
     },
   };
 }
