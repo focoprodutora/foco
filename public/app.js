@@ -655,4 +655,7 @@ setInterval(() => {
   else atualizarBadge();
 }, 30_000);
 
+// Permite instalar o painel como aplicativo no celular.
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
 if (senha) api("/api/resumo").then(iniciar, () => {}); else mostrarLogin();

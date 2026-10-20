@@ -161,10 +161,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .login { background: radial-gradient(ellipse at top, rgb(201 162 77 / .14), transparent 60%), var(--fundo); }
 .login form { border-color: rgb(201 162 77 / .35); padding: 2rem; }
 .login h1 { background: var(--ouro); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.monograma {
-  width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
-  border: 1px solid var(--destaque); font: 600 1.6rem var(--titulo); color: var(--destaque-forte);
-}
+.monograma { width: 64px; height: 64px; border-radius: 16px; }
 
 /* Tarefas, financeiro e histórico */
 a { color: var(--destaque-forte); }

@@ -8,7 +8,8 @@ import { lerWebhookEvolution } from "./whatsapp.js";
 import { reais } from "./ia/ferramentas.js";
 
 const PASTA_PUBLICA = "public";
-const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml" };
+const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml",
+  ".png": "image/png", ".webmanifest": "application/manifest+json" };
 const LIMITE_CORPO = 20 * 1024 * 1024;
 
 class ErroHttp extends Error {
