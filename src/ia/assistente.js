@@ -1,5 +1,6 @@
 // Secretária da equipe: entende o pedido (texto ou áudio transcrito) e usa as ferramentas.
 import { DEFINICOES, executarFerramenta } from "./ferramentas.js";
+import { IMAGENS_LEGIVEIS } from "../arquivos.js";
 import { agoraLocal, dataHumana, diaDaSemana, somarMinutos } from "../util.js";
 
 const MAX_RODADAS = 10;
@@ -7,17 +8,31 @@ const MAX_RODADAS = 10;
 function instrucoes(nomeNegocio) {
   return `Você é a secretária eletrônica de ${nomeNegocio}, uma mentoria que faz palestras em vários estados do Brasil.
 Quem fala com você pelo WhatsApp é sempre alguém da equipe, quase sempre por áudio transcrito.
-Seu trabalho: manter o cadastro de mentoradas e mentores (nome, telefone, estado, cidade), a agenda de sessões,
-o registro de palestras por estado, e ajudar a equipe a dar conta das mensagens do suporte.
+Seu trabalho, como uma assessora executiva:
+- Cadastro de mentoradas e mentores (nome, telefone, estado, cidade) e registro de palestras por estado.
+- Agenda de sessões com as mentoradas (os lembretes para elas saem sozinhos 24h e 1h antes).
+- Tarefas e lembretes da própria equipe ("me lembra amanhã às 9 de ligar para a Juliana").
+- Financeiro das mentoradas: cobranças (o que cada uma deve e quando vence) e pagamentos recebidos.
+- Anotações e arquivos de cada mentorada (contratos, fichas, comprovantes, prints).
+- Ajudar a equipe a dar conta das mensagens do suporte.
 
 Como trabalhar:
 - Transcrições de áudio têm erros. Corrija nomes de cidades e estados ("Uberlândia, Minas" = Uberlândia/MG) e
   telefones ditos por extenso. Se algo essencial estiver ambíguo, pergunte em vez de adivinhar.
 - Datas são sempre no horário de Brasília. Resolva "terça que vem", "amanhã às 3 da tarde" a partir da data atual
   informada na mensagem. "3 da tarde" = 15:00.
-- Antes de agendar, encontre a pessoa com buscar_pessoas. Se não existir e a equipe deu os dados, cadastre primeiro.
+- Antes de agendar, cobrar ou anotar algo de alguém, encontre a pessoa com buscar_pessoas. Se não existir e a equipe
+  deu os dados, cadastre primeiro.
 - Se faltar telefone, estado ou cidade num cadastro, cadastre com o que tem e pergunte o que falta numa frase.
-- Nunca envie mensagem para mentoradas ou para o suporte sem a equipe ter pedido. Se for útil, ofereça.
+- "Me lembra", "não me deixa esquecer", "preciso fazer" = criar_tarefa. Sem horário dito, crie sem horário.
+  Se a pessoa responder "feito" ou "adia para…" sem dizer qual tarefa, é a do lembrete que ela acabou de receber:
+  ache com listar_tarefas (atrasadas) e confirme qual foi.
+- Valores em reais: "quinhentos" = 500, "1,5 mil" = 1500. "Pagou" = registrar_pagamento; se houver cobrança aberta
+  de mesmo valor dessa pessoa, informe a cobranca_id para dar baixa. Nunca diga que um pagamento foi feito se a equipe não disse.
+- Quando chegar foto ou documento: ele já fica guardado (o número do arquivo vem na mensagem). Leia o conteúdo.
+  Se for ficha de inscrição, cadastre a pessoa; se for comprovante, registre o pagamento com o arquivo_id;
+  se for de uma mentorada, ligue o arquivo a ela com guardar_arquivo. Se não der para saber o que fazer, pergunte.
+- Nunca envie mensagem ou arquivo para mentoradas ou para o suporte sem a equipe ter pedido. Se for útil, ofereça.
 - Nunca invente dados. Tudo o que você confirmar precisa ter vindo das ferramentas.
 
 Como responder (vai para o WhatsApp):
@@ -37,17 +52,31 @@ function contextoDeData() {
 
 /**
  * Processa um pedido da equipe e devolve o texto de resposta.
- * ctx: { repo, claude, config, enviar, autor, telefone }
+ * ctx: { repo, claude, config, enviar, enviarArquivo, autor, telefone }
+ * `anexo` ({ registro, base64 }) é uma foto ou documento que acabou de chegar.
  */
-export async function atenderEquipe({ texto, veioDeAudio }, ctx) {
+function blocosDoAnexo({ registro, base64 }) {
+  const aviso = `[Arquivo recebido e já guardado: arquivo #${registro.id}, "${registro.nome_arquivo}", ${registro.mimetype}]`;
+  if (IMAGENS_LEGIVEIS.includes(registro.mimetype)) {
+    return [{ type: "image", source: { type: "base64", media_type: registro.mimetype, data: base64 } }, aviso];
+  }
+  if (registro.mimetype === "application/pdf") {
+    return [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }, aviso];
+  }
+  return [null, `${aviso} (formato que não consigo ler, mas está guardado)`];
+}
+
+export async function atenderEquipe({ texto, veioDeAudio, anexo }, ctx) {
   const { repo, claude, config } = ctx;
   const historico = repo.historicoConversa(ctx.telefone, somarMinutos(agoraLocal(), -6 * 60));
   while (historico[0]?.papel === "assistant") historico.shift(); // a conversa precisa começar pela equipe
 
-  const entrada = `${contextoDeData()}\n${ctx.autor} (equipe) ${veioDeAudio ? "mandou um áudio, transcrito" : "escreveu"}: ${texto}`;
+  const [blocoAnexo, avisoAnexo] = anexo ? blocosDoAnexo(anexo) : [null, null];
+  const comoFalou = anexo ? "mandou um arquivo" : veioDeAudio ? "mandou um áudio, transcrito" : "escreveu";
+  const entrada = `${contextoDeData()}\n${avisoAnexo ? `${avisoAnexo}\n` : ""}${ctx.autor} (equipe) ${comoFalou}: ${texto || "(sem legenda)"}`;
   const messages = [
     ...historico.map((h) => ({ role: h.papel, content: h.texto })),
-    { role: "user", content: entrada },
+    { role: "user", content: blocoAnexo ? [blocoAnexo, { type: "text", text: entrada }] : entrada },
   ];
 
   let resposta = "";

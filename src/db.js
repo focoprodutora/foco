@@ -88,6 +88,53 @@ CREATE TABLE IF NOT EXISTS conversas (
 );
 CREATE INDEX IF NOT EXISTS conversas_tel ON conversas(chave_tel);
 
+CREATE TABLE IF NOT EXISTS tarefas (
+  id INTEGER PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  notas TEXT,
+  quando TEXT,
+  prioridade TEXT NOT NULL DEFAULT 'media' CHECK (prioridade IN ('baixa', 'media', 'alta')),
+  status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'feita', 'cancelada')),
+  pessoa_id INTEGER REFERENCES pessoas(id),
+  avisar_telefone TEXT,
+  criado_por TEXT,
+  lembrete_enviado INTEGER NOT NULL DEFAULT 0,
+  criado_em TEXT NOT NULL,
+  concluida_em TEXT
+);
+CREATE INDEX IF NOT EXISTS tarefas_quando ON tarefas(status, quando);
+
+CREATE TABLE IF NOT EXISTS lancamentos (
+  id INTEGER PRIMARY KEY,
+  pessoa_id INTEGER NOT NULL REFERENCES pessoas(id),
+  tipo TEXT NOT NULL CHECK (tipo IN ('cobranca', 'pagamento')),
+  valor_centavos INTEGER NOT NULL CHECK (valor_centavos > 0),
+  data TEXT NOT NULL,
+  descricao TEXT,
+  forma TEXT,
+  status TEXT NOT NULL DEFAULT 'aberta' CHECK (status IN ('aberta', 'paga', 'cancelada', 'recebido')),
+  cobranca_id INTEGER REFERENCES lancamentos(id),
+  arquivo_id INTEGER,
+  criado_em TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS lancamentos_pessoa ON lancamentos(pessoa_id, tipo);
+
+CREATE TABLE IF NOT EXISTS registros (
+  id INTEGER PRIMARY KEY,
+  pessoa_id INTEGER REFERENCES pessoas(id),
+  tipo TEXT NOT NULL CHECK (tipo IN ('nota', 'arquivo')),
+  titulo TEXT,
+  texto TEXT,
+  mimetype TEXT,
+  nome_arquivo TEXT,
+  caminho TEXT,
+  tamanho INTEGER,
+  origem_telefone TEXT,
+  autor TEXT,
+  criado_em TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS registros_pessoa ON registros(pessoa_id);
+
 CREATE TABLE IF NOT EXISTS kv (
   chave TEXT PRIMARY KEY,
   valor TEXT
@@ -342,6 +389,132 @@ function criarRepositorio(db) {
     historicoConversa(telefone, desdeLocal, limite = 12) {
       return q(`SELECT papel, texto FROM (SELECT * FROM conversas WHERE chave_tel = ? AND criado_em >= ? ORDER BY id DESC LIMIT ?) ORDER BY id`)
         .all(chaveTelefone(telefone) || telefone, desdeLocal, limite);
+    },
+
+    // ---------- Tarefas e lembretes da equipe ----------
+
+    criarTarefa({ titulo, notas, quando, prioridade = "media", pessoa_id, avisar_telefone, criado_por }) {
+      const r = q(`INSERT INTO tarefas (titulo, notas, quando, prioridade, pessoa_id, avisar_telefone, criado_por, criado_em)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        titulo, notas || null, quando || null, prioridade || "media", pessoa_id || null, avisar_telefone || null, criado_por || null, agoraLocal(),
+      );
+      return repo.tarefa(Number(r.lastInsertRowid));
+    },
+
+    tarefa(id) {
+      return q(`SELECT t.*, p.nome AS pessoa_nome FROM tarefas t LEFT JOIN pessoas p ON p.id = t.pessoa_id WHERE t.id = ?`).get(id) || null;
+    },
+
+    atualizarTarefa(id, campos) {
+      const atual = repo.tarefa(id);
+      if (!atual) return null;
+      const novo = { ...atual };
+      for (const [k, v] of Object.entries(campos)) if (v !== undefined && v !== null) novo[k] = v;
+      const reagendada = novo.quando !== atual.quando;
+      q(`UPDATE tarefas SET titulo = ?, notas = ?, quando = ?, prioridade = ?, status = ?, lembrete_enviado = ?, concluida_em = ? WHERE id = ?`).run(
+        novo.titulo, novo.notas, novo.quando, novo.prioridade, novo.status, reagendada ? 0 : novo.lembrete_enviado,
+        novo.status === "feita" ? atual.concluida_em || agoraLocal() : null, id,
+      );
+      return repo.tarefa(id);
+    },
+
+    /** Pendentes primeiro por data (sem data no fim); `ate` limita às que vencem até essa data/hora. */
+    tarefas({ status = "pendente", ate, pessoa_id } = {}) {
+      const onde = [];
+      const args = [];
+      if (status !== "todas") { onde.push("t.status = ?"); args.push(status); }
+      if (ate) { onde.push("t.quando IS NOT NULL AND t.quando < ?"); args.push(ate); }
+      if (pessoa_id) { onde.push("t.pessoa_id = ?"); args.push(pessoa_id); }
+      const where = onde.length ? `WHERE ${onde.join(" AND ")}` : "";
+      return q(`SELECT t.*, p.nome AS pessoa_nome FROM tarefas t LEFT JOIN pessoas p ON p.id = t.pessoa_id ${where}
+                ORDER BY t.quando IS NULL, t.quando, CASE t.prioridade WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END, t.id
+                LIMIT 200`).all(...args);
+    },
+
+    lembretesDeTarefaVencidos(agora) {
+      return q(`SELECT t.*, p.nome AS pessoa_nome FROM tarefas t LEFT JOIN pessoas p ON p.id = t.pessoa_id
+                WHERE t.status = 'pendente' AND t.lembrete_enviado = 0 AND t.quando IS NOT NULL AND t.quando <= ?`).all(agora);
+    },
+
+    marcarLembreteTarefa(id) {
+      q(`UPDATE tarefas SET lembrete_enviado = 1 WHERE id = ?`).run(id);
+    },
+
+    // ---------- Financeiro ----------
+
+    criarLancamento({ pessoa_id, tipo, valor_centavos, data, descricao, forma, cobranca_id, arquivo_id }) {
+      const r = q(`INSERT INTO lancamentos (pessoa_id, tipo, valor_centavos, data, descricao, forma, status, cobranca_id, arquivo_id, criado_em)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        pessoa_id, tipo, valor_centavos, data, descricao || null, forma || null, tipo === "cobranca" ? "aberta" : "recebido",
+        cobranca_id || null, arquivo_id || null, agoraLocal(),
+      );
+      if (tipo === "pagamento" && cobranca_id) q(`UPDATE lancamentos SET status = 'paga' WHERE id = ? AND tipo = 'cobranca'`).run(cobranca_id);
+      return repo.lancamento(Number(r.lastInsertRowid));
+    },
+
+    lancamento(id) {
+      return q(`SELECT l.*, p.nome AS pessoa_nome, p.telefone AS pessoa_telefone FROM lancamentos l JOIN pessoas p ON p.id = l.pessoa_id WHERE l.id = ?`).get(id) || null;
+    },
+
+    atualizarLancamento(id, { status, data, valor_centavos, descricao }) {
+      const atual = repo.lancamento(id);
+      if (!atual) return null;
+      q(`UPDATE lancamentos SET status = ?, data = ?, valor_centavos = ?, descricao = ? WHERE id = ?`).run(
+        status ?? atual.status, data ?? atual.data, valor_centavos ?? atual.valor_centavos, descricao ?? atual.descricao, id,
+      );
+      return repo.lancamento(id);
+    },
+
+    /**
+     * situacao: "atrasadas" (cobranças abertas vencidas antes de `hoje`), "abertas", "pagamentos" ou "tudo".
+     * de/ate filtram pela data (AAAA-MM-DD, `ate` inclusive).
+     */
+    lancamentos({ pessoa_id, situacao = "tudo", hoje, de, ate } = {}) {
+      const onde = [];
+      const args = [];
+      if (pessoa_id) { onde.push("l.pessoa_id = ?"); args.push(pessoa_id); }
+      if (situacao === "atrasadas") { onde.push("l.tipo = 'cobranca' AND l.status = 'aberta' AND l.data < ?"); args.push(hoje); }
+      if (situacao === "abertas") onde.push("l.tipo = 'cobranca' AND l.status = 'aberta'");
+      if (situacao === "pagamentos") onde.push("l.tipo = 'pagamento'");
+      if (de) { onde.push("l.data >= ?"); args.push(de); }
+      if (ate) { onde.push("l.data <= ?"); args.push(ate); }
+      const where = onde.length ? `WHERE ${onde.join(" AND ")}` : "";
+      return q(`SELECT l.*, p.nome AS pessoa_nome, p.telefone AS pessoa_telefone, p.cidade, p.estado
+                FROM lancamentos l JOIN pessoas p ON p.id = l.pessoa_id ${where} ORDER BY l.data, l.id LIMIT 500`).all(...args);
+    },
+
+    // ---------- Anotações e arquivos ----------
+
+    criarRegistro({ pessoa_id, tipo, titulo, texto, mimetype, nome_arquivo, caminho, tamanho, origem_telefone, autor }) {
+      const r = q(`INSERT INTO registros (pessoa_id, tipo, titulo, texto, mimetype, nome_arquivo, caminho, tamanho, origem_telefone, autor, criado_em)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        pessoa_id || null, tipo, titulo || null, texto || null, mimetype || null, nome_arquivo || null, caminho || null,
+        tamanho || null, origem_telefone || null, autor || null, agoraLocal(),
+      );
+      return repo.registro(Number(r.lastInsertRowid));
+    },
+
+    registro(id) {
+      return q(`SELECT r.*, p.nome AS pessoa_nome FROM registros r LEFT JOIN pessoas p ON p.id = r.pessoa_id WHERE r.id = ?`).get(id) || null;
+    },
+
+    atualizarRegistro(id, { pessoa_id, titulo, texto }) {
+      const atual = repo.registro(id);
+      if (!atual) return null;
+      q(`UPDATE registros SET pessoa_id = ?, titulo = ?, texto = ? WHERE id = ?`).run(pessoa_id ?? atual.pessoa_id, titulo ?? atual.titulo, texto ?? atual.texto, id);
+      return repo.registro(id);
+    },
+
+    registros({ pessoa_id, tipo, texto, limite = 50 } = {}) {
+      const onde = [];
+      const args = [];
+      if (pessoa_id) { onde.push("r.pessoa_id = ?"); args.push(pessoa_id); }
+      if (tipo) { onde.push("r.tipo = ?"); args.push(tipo); }
+      const where = onde.length ? `WHERE ${onde.join(" AND ")}` : "";
+      const alvo = texto ? semAcento(texto) : null;
+      return q(`SELECT r.*, p.nome AS pessoa_nome FROM registros r LEFT JOIN pessoas p ON p.id = r.pessoa_id ${where} ORDER BY r.id DESC`).all(...args)
+        .filter((r) => !alvo || semAcento(`${r.titulo} ${r.texto} ${r.nome_arquivo}`).includes(alvo))
+        .slice(0, limite);
     },
 
     // ---------- Chave/valor ----------

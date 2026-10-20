@@ -30,6 +30,8 @@
         <button data-aba="suporte">Suporte <span id="badge-suporte" class="badge" hidden></span></button>
         <button data-aba="pessoas">Mentoradas e mentores</button>
         <button data-aba="agenda">Agenda</button>
+        <button data-aba="tarefas">Tarefas</button>
+        <button data-aba="financeiro">Financeiro</button>
         <button data-aba="palestras">Palestras</button>
         <button data-aba="simulador">Testar</button>
       </nav>
@@ -94,6 +96,41 @@
         <div id="agenda"></div>
       </section>
 
+      <!-- Tarefas -->
+      <section data-secao="tarefas" hidden>
+        <form id="form-tarefa" class="cartao filtros">
+          <input id="tarefa-titulo" name="titulo" placeholder="Nova tarefa, ex.: Ligar para a Juliana" required>
+          <input id="tarefa-quando" name="quando" type="datetime-local" title="Lembrete (opcional)">
+          <select id="tarefa-prioridade" name="prioridade"><option value="media">Prioridade média</option><option value="alta">Alta</option><option value="baixa">Baixa</option></select>
+          <button type="submit">Adicionar</button>
+        </form>
+        <div class="filtros">
+          <select id="filtro-tarefas">
+            <option value="pendentes">Pendentes</option>
+            <option value="hoje">Para hoje</option>
+            <option value="feitas">Feitas</option>
+          </select>
+          <span class="sutil" style="margin:0">Dica: mande no WhatsApp "me lembra amanhã às 9 de…"</span>
+        </div>
+        <ul id="lista-tarefas" class="tarefas"></ul>
+      </section>
+
+      <!-- Financeiro -->
+      <section data-secao="financeiro" hidden>
+        <div class="kpis" id="kpis-financeiro"></div>
+        <div class="filtros">
+          <select id="filtro-financeiro">
+            <option value="tudo">Tudo</option>
+            <option value="atrasadas">Em atraso</option>
+            <option value="abertas">A receber</option>
+            <option value="pagamentos">Pagamentos recebidos</option>
+          </select>
+          <button id="novo-lancamento">+ Lançar</button>
+          <span class="sutil" style="margin:0">Dica: "a Juliana pagou 500 no pix" no WhatsApp também registra.</span>
+        </div>
+        <div class="tabela-rolagem"><table id="tabela-financeiro"></table></div>
+      </section>
+
       <!-- Palestras -->
       <section data-secao="palestras" hidden>
         <form id="form-palestra" class="cartao filtros">
@@ -124,6 +161,7 @@
           <form id="form-sim" class="enviar">
             <input id="sim-texto" placeholder='Ex.: "Cadastra a Juliana Martins de Uberlândia, Minas, 31 98877-6655"'>
             <button type="button" id="sim-gravar" title="Gravar áudio">🎤</button>
+            <label class="anexar" title="Enviar foto ou PDF">📎<input type="file" id="sim-arquivo" accept="image/*,application/pdf" hidden></label>
             <button type="submit">Enviar</button>
           </form>
         </div>

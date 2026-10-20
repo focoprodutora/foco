@@ -1,4 +1,5 @@
 // Rotinas automáticas: lembrete para mentoradas, resumo diário e alerta de suporte parado.
+import { reais } from "./ia/ferramentas.js";
 import { agoraLocal, dataHumana, somarMinutos, telefoneHumano } from "./util.js";
 
 function primeiroNome(nome) {
@@ -43,11 +44,47 @@ export function montarResumoDiario({ repo, agora = agoraLocal() }) {
   } else {
     linhas.push("Nenhuma sessão marcada para hoje.");
   }
+  const fimDoDia = somarMinutos(`${hoje}T00:00`, 24 * 60);
+  const tarefas = repo.tarefas({ status: "pendente", ate: fimDoDia });
+  if (tarefas.length) {
+    linhas.push("", `*Tarefas para hoje (${tarefas.length}):*`);
+    for (const t of tarefas.slice(0, 10)) {
+      const hora = t.quando < `${hoje}T00:00` ? "atrasada" : t.quando.slice(11, 16);
+      linhas.push(`• ${hora} ${t.titulo}${t.pessoa_nome ? ` (${t.pessoa_nome})` : ""}`);
+    }
+  }
+
+  const vencemHoje = repo.lancamentos({ situacao: "abertas", de: hoje, ate: hoje });
+  const atrasadas = repo.lancamentos({ situacao: "atrasadas", hoje });
+  if (vencemHoje.length || atrasadas.length) {
+    const total = (lista) => reais(lista.reduce((t, l) => t + l.valor_centavos, 0));
+    linhas.push("", "*Financeiro:*");
+    if (vencemHoje.length) linhas.push(`• Vencem hoje: ${vencemHoje.map((l) => `${l.pessoa_nome} ${reais(l.valor_centavos)}`).join(", ")}`);
+    if (atrasadas.length) linhas.push(`• Em atraso: ${atrasadas.length} cobrança(s), ${total(atrasadas)}`);
+  }
+
   linhas.push("", `*Suporte:* ${abertos.length} em aberto, ${semResposta.length} esperando resposta da equipe.`);
   for (const t of abertos.filter((t) => ["urgente", "alta"].includes(t.prioridade)).slice(0, 5)) {
     linhas.push(`• #${t.id} ${t.nome || telefoneHumano(t.telefone)}: ${t.resumo || "sem resumo"}`);
   }
   return linhas.join("\n");
+}
+
+/** Manda o lembrete de cada tarefa na hora marcada para quem pediu (ou para toda a equipe). */
+export async function enviarLembretesDeTarefas({ repo, enviar, avisar, agora = agoraLocal() }) {
+  let enviados = 0;
+  for (const t of repo.lembretesDeTarefaVencidos(agora)) {
+    const texto = `⏰ *Lembrete:* ${t.titulo}${t.pessoa_nome ? `\n👤 ${t.pessoa_nome}` : ""}${t.notas ? `\n📝 ${t.notas}` : ""}\n\n_Quando terminar, é só me dizer "feito" ou pedir para adiar._`;
+    try {
+      if (t.avisar_telefone) await enviar(t.avisar_telefone, texto);
+      else await avisar(texto);
+      repo.marcarLembreteTarefa(t.id);
+      enviados++;
+    } catch (e) {
+      console.error(`[lembrete tarefa ${t.id}]`, e.message);
+    }
+  }
+  return enviados;
 }
 
 export async function alertarSuporteParado({ repo, avisar, horas, agora = agoraLocal() }) {
@@ -71,6 +108,7 @@ export function iniciarRotinas({ repo, secretaria, whatsapp, config }) {
       // Sem o número conectado, nada sairia: espera a conexão para não perder o resumo do dia.
       if ((await whatsapp.estado()) !== "open") return;
       await enviarLembretes({ repo, enviar: secretaria.enviarWhatsapp, agora });
+      await enviarLembretesDeTarefas({ repo, enviar: secretaria.enviarWhatsapp, avisar: secretaria.avisarEquipe, agora });
       await alertarSuporteParado({ repo, avisar: secretaria.avisarEquipe, horas: config.suporte.alertaHoras, agora });
 
       const hoje = agora.slice(0, 10);

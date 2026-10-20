@@ -25,21 +25,39 @@ export function lerWebhookEvolution(corpo) {
     nome: dados.pushName || null,
   };
 
-  const texto = msg.conversation || msg.extendedTextMessage?.text || msg.imageMessage?.caption || msg.videoMessage?.caption;
+  const base64 = msg.base64 || dados.base64 || null; // vem preenchido se o webhook estiver com "base64" ligado
+
+  // Foto ou documento (PDF etc.), com ou sem legenda.
+  const imagem = msg.imageMessage;
+  const documento = msg.documentMessage || msg.documentWithCaptionMessage?.message?.documentMessage;
+  if (imagem || documento) {
+    const m = imagem || documento;
+    return {
+      ...base,
+      tipo: "midia",
+      midiaBase64: base64,
+      mimetype: m.mimetype || (imagem ? "image/jpeg" : "application/octet-stream"),
+      nomeArquivo: documento?.fileName || documento?.title || null,
+      legenda: m.caption || "",
+      chaveMensagem: chave,
+    };
+  }
+
+  const texto = msg.conversation || msg.extendedTextMessage?.text || msg.videoMessage?.caption;
   if (texto) return { ...base, tipo: "texto", texto };
 
   if (msg.audioMessage) {
     return {
       ...base,
       tipo: "audio",
-      audioBase64: msg.base64 || dados.base64 || null, // vem preenchido se o webhook estiver com "base64" ligado
+      audioBase64: base64,
       mimetype: msg.audioMessage.mimetype || "audio/ogg",
       chaveMensagem: chave,
     };
   }
 
-  if (msg.imageMessage || msg.documentMessage || msg.videoMessage || msg.stickerMessage) {
-    return { ...base, tipo: "texto", texto: "[a pessoa enviou um arquivo/imagem sem texto]" };
+  if (msg.videoMessage || msg.stickerMessage) {
+    return { ...base, tipo: "texto", texto: "[a pessoa enviou um vídeo ou figurinha sem texto]" };
   }
   return null;
 }
@@ -76,10 +94,23 @@ export function criarClienteEvolution({ url, chave, instancia }) {
       return chamar("/message/sendText", { number: String(telefone).replace(/\D/g, ""), text: texto });
     },
 
-    /** Baixa o áudio de uma mensagem recebida e devolve { base64, mimetype }. */
+    /** Baixa o áudio, foto ou documento de uma mensagem recebida e devolve { base64, mimetype }. */
     async baixarMidia(chaveMensagem) {
       const r = await chamar("/chat/getBase64FromMediaMessage", { message: { key: chaveMensagem }, convertToMp4: false });
-      return { base64: r.base64, mimetype: r.mimetype || "audio/ogg" };
+      return { base64: r.base64, mimetype: r.mimetype || null };
+    },
+
+    /** Envia uma foto ou documento. `base64` sem o prefixo "data:". */
+    async enviarArquivo(telefone, { base64, mimetype, nome, legenda }) {
+      exigirConfiguracao();
+      return chamar("/message/sendMedia", {
+        number: String(telefone).replace(/\D/g, ""),
+        mediatype: String(mimetype).startsWith("image/") ? "image" : "document",
+        mimetype,
+        media: base64,
+        fileName: nome,
+        caption: legenda || "",
+      });
     },
 
     /** "open" (conectado), "connecting", "close" ou "inexistente" (instância ainda não criada). */

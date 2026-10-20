@@ -136,6 +136,123 @@ export const DEFINICOES = [
       mensagem: texto("Texto exato que a pessoa vai receber."),
     }),
   },
+  {
+    name: "criar_tarefa",
+    description:
+      "Cria uma tarefa ou lembrete para a equipe. Com horário, a secretária manda o lembrete no WhatsApp na hora. " +
+      "Ex.: \"me lembra amanhã às 9 de ligar para a Juliana\".",
+    input_schema: objeto({
+      titulo: texto("O que fazer, curto e claro. Ex.: \"Ligar para a Juliana sobre a renovação\"."),
+      quando: nulo(texto("Data e hora do lembrete, AAAA-MM-DDTHH:MM (Brasília). null se não houver horário.")),
+      prioridade: nulo({ type: "string", enum: ["baixa", "media", "alta"] }),
+      pessoa_id: nulo({ type: "integer", description: "Mentorada/mentor relacionado, se houver." }),
+      notas: nulo({ type: "string" }),
+      avisar: { type: "string", enum: ["quem_pediu", "toda_equipe"], description: "Quem recebe o lembrete (padrão: quem pediu)." },
+    }),
+  },
+  {
+    name: "listar_tarefas",
+    description: "Lista tarefas da equipe: pendentes, de hoje, atrasadas ou já feitas.",
+    input_schema: objeto({
+      filtro: { type: "string", enum: ["pendentes", "hoje", "atrasadas", "feitas"] },
+      pessoa_id: nulo({ type: "integer" }),
+    }),
+  },
+  {
+    name: "atualizar_tarefa",
+    description: "Conclui, cancela, reabre ou muda o horário de uma tarefa.",
+    input_schema: objeto({
+      tarefa_id: { type: "integer" },
+      status: nulo({ type: "string", enum: ["pendente", "feita", "cancelada"] }),
+      novo_quando: nulo(texto("Novo horário AAAA-MM-DDTHH:MM.")),
+      titulo: nulo({ type: "string" }),
+      prioridade: nulo({ type: "string", enum: ["baixa", "media", "alta"] }),
+    }),
+  },
+  {
+    name: "registrar_cobranca",
+    description: "Registra um valor que a mentorada deve pagar (mensalidade, parcela, inscrição) e quando vence.",
+    input_schema: objeto({
+      pessoa_id: { type: "integer" },
+      valor: { type: "number", description: "Valor em reais, ex.: 500 ou 1250.90." },
+      vencimento: texto("AAAA-MM-DD"),
+      descricao: nulo(texto("Ex.: \"Parcela 2/6 da mentoria\".")),
+    }),
+  },
+  {
+    name: "registrar_pagamento",
+    description: "Registra um pagamento recebido de uma mentorada. Informe cobranca_id para dar baixa numa cobrança aberta.",
+    input_schema: objeto({
+      pessoa_id: { type: "integer" },
+      valor: { type: "number", description: "Valor em reais." },
+      data: nulo(texto("Data do pagamento AAAA-MM-DD (padrão: hoje).")),
+      forma: nulo({ type: "string", enum: ["pix", "cartao", "boleto", "dinheiro", "transferencia", "outro"] }),
+      cobranca_id: nulo({ type: "integer" }),
+      arquivo_id: nulo({ type: "integer", description: "Comprovante já guardado, se houver." }),
+      descricao: nulo({ type: "string" }),
+    }),
+  },
+  {
+    name: "alterar_cobranca",
+    description: "Muda uma cobrança: dar baixa manual (paga), cancelar, reabrir, mudar vencimento ou valor.",
+    input_schema: objeto({
+      cobranca_id: { type: "integer" },
+      status: nulo({ type: "string", enum: ["aberta", "paga", "cancelada"] }),
+      novo_vencimento: nulo(texto("AAAA-MM-DD")),
+      valor: nulo({ type: "number" }),
+    }),
+  },
+  {
+    name: "consultar_financeiro",
+    description:
+      "Consulta o financeiro: cobranças atrasadas, em aberto, pagamentos recebidos ou tudo, de uma pessoa ou de todas, " +
+      "opcionalmente num período (de/ate em AAAA-MM-DD). Traz os totais.",
+    input_schema: objeto({
+      situacao: { type: "string", enum: ["atrasadas", "abertas", "pagamentos", "tudo"] },
+      pessoa_id: nulo({ type: "integer" }),
+      de: nulo({ type: "string" }),
+      ate: nulo({ type: "string" }),
+    }),
+  },
+  {
+    name: "anotar",
+    description: "Guarda uma anotação, ligada a uma mentorada/mentor ou geral. Ex.: resumo de conversa, preferência, combinado.",
+    input_schema: objeto({
+      pessoa_id: nulo({ type: "integer" }),
+      texto: { type: "string" },
+      titulo: nulo({ type: "string" }),
+    }),
+  },
+  {
+    name: "buscar_registros",
+    description: "Procura anotações e arquivos guardados, de uma pessoa ou por palavra (ex.: \"contrato\", \"comprovante\").",
+    input_schema: objeto({
+      pessoa_id: nulo({ type: "integer" }),
+      texto: nulo({ type: "string" }),
+      tipo: nulo({ type: "string", enum: ["nota", "arquivo"] }),
+    }),
+  },
+  {
+    name: "guardar_arquivo",
+    description: "Liga um arquivo já recebido a uma mentorada/mentor e dá um título a ele (ex.: \"Contrato assinado\").",
+    input_schema: objeto({
+      arquivo_id: { type: "integer" },
+      pessoa_id: nulo({ type: "integer" }),
+      titulo: nulo({ type: "string" }),
+    }),
+  },
+  {
+    name: "enviar_arquivo",
+    description:
+      "Envia um arquivo guardado pelo WhatsApp: para quem pediu (ex.: \"me manda o contrato da Juliana\") " +
+      "ou para uma pessoa cadastrada (só se a equipe pediu).",
+    input_schema: objeto({
+      arquivo_id: { type: "integer" },
+      destino: { type: "string", enum: ["quem_pediu", "pessoa"] },
+      pessoa_id: nulo({ type: "integer", description: "Obrigatório quando destino = pessoa." }),
+      legenda: nulo({ type: "string" }),
+    }),
+  },
 ].map((d) => ({ ...d, strict: true }));
 
 function pessoaResumida(p) {
@@ -155,6 +272,40 @@ function agendamentoResumido(a) {
 }
 
 class ErroFerramenta extends Error {}
+
+export function reais(centavos) {
+  // O Intl separa "R$" do número com espaço não separável; o espaço comum copia e lê melhor no WhatsApp.
+  return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace(/\s/g, " ");
+}
+
+function paraCentavos(valor) {
+  const c = Math.round(Number(valor) * 100);
+  if (!Number.isFinite(c) || c <= 0) throw new ErroFerramenta(`Valor inválido: ${valor}. Confirme o valor em reais.`);
+  return c;
+}
+
+function tarefaResumida(t) {
+  return {
+    id: t.id, titulo: t.titulo, quando: t.quando ? dataHumana(t.quando) : "sem horário", prioridade: t.prioridade,
+    status: t.status, pessoa: t.pessoa_nome || null, notas: t.notas,
+  };
+}
+
+function lancamentoResumido(l) {
+  return {
+    id: l.id, tipo: l.tipo, pessoa_id: l.pessoa_id, pessoa: l.pessoa_nome, valor: reais(l.valor_centavos),
+    [l.tipo === "cobranca" ? "vencimento" : "data"]: l.data.split("-").reverse().join("/"),
+    status: l.status, descricao: l.descricao, forma: l.forma, comprovante_arquivo_id: l.arquivo_id,
+  };
+}
+
+function registroResumido(r) {
+  return {
+    id: r.id, tipo: r.tipo, pessoa: r.pessoa_nome || null, titulo: r.titulo, texto: r.texto,
+    arquivo: r.nome_arquivo, formato: r.mimetype, guardado_em: r.criado_em.slice(0, 16).replace("T", " "),
+  };
+}
+
 
 function resolverMentor(repo, nome) {
   if (!nome) return null;
@@ -278,6 +429,142 @@ const EXECUTORES = {
     await ctx.enviar(p.telefone, e.mensagem, { ticket_id: ticket?.id, autor: ctx.autor });
     return { enviado: true, para: p.nome };
   },
+  criar_tarefa(repo, e, ctx) {
+    let quando = null;
+    if (e.quando) {
+      quando = normalizarDataHora(e.quando);
+      if (!quando) throw new ErroFerramenta(`Horário inválido: "${e.quando}". Use AAAA-MM-DDTHH:MM.`);
+      if (quando < agoraLocal()) throw new ErroFerramenta(`${dataHumana(quando)} já passou. Confirme o horário.`);
+    }
+    if (e.pessoa_id) exigirPessoa(repo, e.pessoa_id);
+    const t = repo.criarTarefa({
+      titulo: e.titulo, notas: e.notas, quando, prioridade: e.prioridade || "media", pessoa_id: e.pessoa_id,
+      avisar_telefone: e.avisar === "toda_equipe" ? null : ctx.telefone, criado_por: ctx.autor,
+    });
+    return { criada: tarefaResumida(t), lembrete: quando ? `no WhatsApp ${dataHumana(quando)}` : "sem lembrete (sem horário)" };
+  },
+
+  listar_tarefas(repo, e) {
+    const agora = agoraLocal();
+    const fimDoDia = somarMinutos(`${agora.slice(0, 10)}T00:00`, 24 * 60);
+    const filtros = {
+      pendentes: { status: "pendente" },
+      hoje: { status: "pendente", ate: fimDoDia },
+      atrasadas: { status: "pendente", ate: agora },
+      feitas: { status: "feita" },
+    };
+    const tarefas = repo.tarefas({ ...filtros[e.filtro], pessoa_id: e.pessoa_id });
+    return { total: tarefas.length, tarefas: tarefas.slice(0, 30).map(tarefaResumida) };
+  },
+
+  atualizar_tarefa(repo, e) {
+    if (!repo.tarefa(e.tarefa_id)) throw new ErroFerramenta(`Tarefa ${e.tarefa_id} não encontrada.`);
+    let quando;
+    if (e.novo_quando) {
+      quando = normalizarDataHora(e.novo_quando);
+      if (!quando) throw new ErroFerramenta(`Horário inválido: "${e.novo_quando}".`);
+    }
+    const t = repo.atualizarTarefa(e.tarefa_id, { status: e.status, quando, titulo: e.titulo, prioridade: e.prioridade });
+    return { atualizada: tarefaResumida(t) };
+  },
+
+  registrar_cobranca(repo, e) {
+    exigirPessoa(repo, e.pessoa_id);
+    const data = normalizarData(e.vencimento);
+    if (!data) throw new ErroFerramenta("Vencimento inválido. Use AAAA-MM-DD.");
+    const l = repo.criarLancamento({ pessoa_id: e.pessoa_id, tipo: "cobranca", valor_centavos: paraCentavos(e.valor), data, descricao: e.descricao });
+    return { cobranca: lancamentoResumido(l) };
+  },
+
+  registrar_pagamento(repo, e) {
+    const pessoa = exigirPessoa(repo, e.pessoa_id);
+    const data = e.data ? normalizarData(e.data) : agoraLocal().slice(0, 10);
+    if (!data) throw new ErroFerramenta("Data inválida. Use AAAA-MM-DD.");
+    const valor_centavos = paraCentavos(e.valor);
+    if (e.cobranca_id) {
+      const c = repo.lancamento(e.cobranca_id);
+      if (!c || c.tipo !== "cobranca" || c.pessoa_id !== pessoa.id) throw new ErroFerramenta(`A cobrança ${e.cobranca_id} não é de ${pessoa.nome}.`);
+      if (c.status !== "aberta") throw new ErroFerramenta(`A cobrança ${e.cobranca_id} já está ${c.status}.`);
+    }
+    if (e.arquivo_id && !repo.registro(e.arquivo_id)) throw new ErroFerramenta(`Arquivo ${e.arquivo_id} não encontrado.`);
+    if (e.arquivo_id) repo.atualizarRegistro(e.arquivo_id, { pessoa_id: pessoa.id, titulo: repo.registro(e.arquivo_id).titulo || "Comprovante de pagamento" });
+    const l = repo.criarLancamento({
+      pessoa_id: pessoa.id, tipo: "pagamento", valor_centavos, data, descricao: e.descricao, forma: e.forma,
+      cobranca_id: e.cobranca_id, arquivo_id: e.arquivo_id,
+    });
+    const abertas = repo.lancamentos({ pessoa_id: pessoa.id, situacao: "abertas" });
+    return {
+      pagamento: lancamentoResumido(l),
+      cobrancas_ainda_abertas: abertas.map(lancamentoResumido),
+      dica: !e.cobranca_id && abertas.some((a) => a.valor_centavos === valor_centavos)
+        ? "Há cobrança aberta com esse valor: pergunte se é para dar baixa nela." : undefined,
+    };
+  },
+
+  alterar_cobranca(repo, e) {
+    const c = repo.lancamento(e.cobranca_id);
+    if (!c || c.tipo !== "cobranca") throw new ErroFerramenta(`Cobrança ${e.cobranca_id} não encontrada.`);
+    let data;
+    if (e.novo_vencimento) {
+      data = normalizarData(e.novo_vencimento);
+      if (!data) throw new ErroFerramenta("Vencimento inválido. Use AAAA-MM-DD.");
+    }
+    const valor_centavos = e.valor ? paraCentavos(e.valor) : undefined;
+    return { cobranca: lancamentoResumido(repo.atualizarLancamento(c.id, { status: e.status || undefined, data, valor_centavos })) };
+  },
+
+  consultar_financeiro(repo, e) {
+    if (e.pessoa_id) exigirPessoa(repo, e.pessoa_id);
+    const hoje = agoraLocal().slice(0, 10);
+    const itens = repo.lancamentos({
+      pessoa_id: e.pessoa_id, situacao: e.situacao, hoje,
+      de: e.de ? normalizarData(e.de) : undefined, ate: e.ate ? normalizarData(e.ate) : undefined,
+    }).filter((l) => l.status !== "cancelada");
+    const soma = (f) => reais(itens.filter(f).reduce((t, l) => t + l.valor_centavos, 0));
+    return {
+      hoje,
+      total_itens: itens.length,
+      total_em_aberto: soma((l) => l.tipo === "cobranca" && l.status === "aberta"),
+      total_atrasado: soma((l) => l.tipo === "cobranca" && l.status === "aberta" && l.data < hoje),
+      total_recebido: soma((l) => l.tipo === "pagamento"),
+      itens: itens.slice(0, 40).map(lancamentoResumido),
+    };
+  },
+
+  anotar(repo, e, ctx) {
+    if (e.pessoa_id) exigirPessoa(repo, e.pessoa_id);
+    const r = repo.criarRegistro({ pessoa_id: e.pessoa_id, tipo: "nota", titulo: e.titulo, texto: e.texto, autor: ctx.autor });
+    return { anotacao: registroResumido(r) };
+  },
+
+  buscar_registros(repo, e) {
+    const achados = repo.registros({ pessoa_id: e.pessoa_id, texto: e.texto, tipo: e.tipo, limite: 20 });
+    return { total: achados.length, registros: achados.map(registroResumido) };
+  },
+
+  guardar_arquivo(repo, e) {
+    const r = repo.registro(e.arquivo_id);
+    if (!r || r.tipo !== "arquivo") throw new ErroFerramenta(`Arquivo ${e.arquivo_id} não encontrado.`);
+    if (e.pessoa_id) exigirPessoa(repo, e.pessoa_id);
+    return { guardado: registroResumido(repo.atualizarRegistro(r.id, { pessoa_id: e.pessoa_id ?? undefined, titulo: e.titulo ?? undefined })) };
+  },
+
+  async enviar_arquivo(repo, e, ctx) {
+    const r = repo.registro(e.arquivo_id);
+    if (!r || r.tipo !== "arquivo") throw new ErroFerramenta(`Arquivo ${e.arquivo_id} não encontrado.`);
+    let telefone = ctx.telefone;
+    let para = "você";
+    if (e.destino === "pessoa") {
+      if (!e.pessoa_id) throw new ErroFerramenta("Diga para qual pessoa enviar.");
+      const p = exigirPessoa(repo, e.pessoa_id);
+      if (!p.telefone) throw new ErroFerramenta(`${p.nome} não tem telefone cadastrado.`);
+      telefone = p.telefone;
+      para = p.nome;
+    }
+    await ctx.enviarArquivo(telefone, r, e.legenda || r.titulo || "");
+    return { enviado: true, arquivo: r.nome_arquivo, para };
+  },
+
 };
 
 /** Executa uma ferramenta e devolve { conteudo, erro }. Erros viram texto para o Claude explicar à equipe. */

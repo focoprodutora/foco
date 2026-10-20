@@ -165,3 +165,29 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
   border: 1px solid var(--destaque); font: 600 1.6rem var(--titulo); color: var(--destaque-forte);
 }
+
+/* Tarefas, financeiro e histórico */
+a { color: var(--destaque-forte); }
+#tarefa-titulo { flex: 1 1 260px; }
+.tarefas { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.tarefas li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .75rem; align-items: center;
+  background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); padding: .65rem .9rem;
+}
+.tarefas li.feita .titulo { text-decoration: line-through; color: var(--sutil); }
+.tarefas li.atrasada { border-color: rgb(232 118 107 / .5); }
+.tarefas input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--destaque); }
+.tarefas .meta { font-size: .82rem; color: var(--sutil); }
+.tarefas .atrasada .meta, .tarefas li.atrasada .meta { color: var(--vermelho); }
+.valor { font-variant-numeric: tabular-nums; text-align: right; }
+.st-aberta { color: var(--amarelo); border-color: var(--amarelo); }
+.st-atrasada { color: #fff; background: var(--vermelho); border-color: var(--vermelho); }
+.st-paga, .st-recebido { color: var(--verde); border-color: var(--verde); }
+.st-cancelada { color: var(--sutil); }
+.anexar { display: inline-grid; place-items: center; cursor: pointer; padding: .5rem .7rem; border: 1px solid var(--destaque); border-radius: 8px; }
+dialog.largo { width: min(760px, calc(100% - 32px)); }
+.historico { display: grid; gap: 1rem; max-height: 70vh; overflow-y: auto; }
+.historico h3 { margin: 0 0 .35rem; font: 600 1.15rem var(--titulo); color: var(--destaque-forte); }
+.historico ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.historico li { border-left: 2px solid var(--borda); padding: .1rem .6rem; font-size: .92rem; }
+.historico .sutil { margin: 0; }

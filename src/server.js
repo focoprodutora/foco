@@ -6,14 +6,17 @@ import { criarSecretaria } from "./secretaria.js";
 import { criarTranscritor } from "./transcricao.js";
 import { criarClienteEvolution } from "./whatsapp.js";
 import { iniciarRotinas } from "./lembretes.js";
+import { criarArquivos } from "./arquivos.js";
 
 const repo = abrirBanco(config.bancoDeDados);
 const whatsapp = criarClienteEvolution(config.evolution);
+const arquivos = criarArquivos({ repo, caminhoBanco: config.bancoDeDados });
 const secretaria = criarSecretaria({
   repo,
   claude: new Anthropic(),
   transcrever: criarTranscritor(config.transcricao),
   whatsapp,
+  arquivos,
   config,
 });
 
@@ -25,7 +28,7 @@ if (!secretaria.whatsappConfigurado) avisos.push("Evolution API não configurada
 if (secretaria.whatsappConfigurado && !config.urlPublica) avisos.push("URL_PUBLICA não definida: o botão Conectar WhatsApp do painel não vai funcionar.");
 if (!config.transcricao.chave) avisos.push("TRANSCRICAO_CHAVE não definida: áudios não serão entendidos.");
 
-criarApp({ repo, secretaria, whatsapp, config }).listen(config.porta, () => {
+criarApp({ repo, secretaria, whatsapp, arquivos, config }).listen(config.porta, () => {
   console.log(`Secretária rodando em http://localhost:${config.porta}`);
   for (const a of avisos) console.log(`  ⚠ ${a}`);
 });

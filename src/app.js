@@ -5,6 +5,7 @@ import { extname, join, normalize } from "node:path";
 import { timingSafeEqual } from "node:crypto";
 import { UFS, agoraLocal, carimbo, normalizarData, normalizarDataHora, normalizarTelefone, somarMinutos } from "./util.js";
 import { lerWebhookEvolution } from "./whatsapp.js";
+import { reais } from "./ia/ferramentas.js";
 
 const PASTA_PUBLICA = "public";
 const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml" };
@@ -56,7 +57,7 @@ function validarPessoa(corpo, parcial = false) {
   if (corpo.telefone) exigir(normalizarTelefone(corpo.telefone), "telefone inválido (use DDD + número)");
 }
 
-export function criarApp({ repo, secretaria, whatsapp, config }) {
+export function criarApp({ repo, secretaria, whatsapp, arquivos, config }) {
   const rotas = [];
   const rota = (metodo, padrao, fn) => rotas.push({ metodo, padrao: new RegExp(`^${padrao}$`), fn });
 
@@ -185,17 +186,110 @@ export function criarApp({ repo, secretaria, whatsapp, config }) {
     return repo.atualizarTicket(ticket.id, { status: corpo.resolver ? "resolvido" : "em_atendimento", responsavel: ticket.responsavel || autor });
   });
 
+  // ---------- Tarefas ----------
+
+  rota("GET", "/api/tarefas", ({ url }) => {
+    const filtro = url.searchParams.get("filtro") || "pendentes";
+    const agora = agoraLocal();
+    if (filtro === "feitas") return repo.tarefas({ status: "feita" });
+    if (filtro === "hoje") return repo.tarefas({ status: "pendente", ate: somarMinutos(`${agora.slice(0, 10)}T00:00`, 24 * 60) });
+    return repo.tarefas({ status: "pendente" });
+  });
+
+  rota("POST", "/api/tarefas", ({ corpo }) => {
+    exigir(String(corpo.titulo || "").trim(), "escreva a tarefa");
+    const quando = corpo.quando ? normalizarDataHora(corpo.quando) : null;
+    if (corpo.quando) exigir(quando, "horário inválido");
+    if (corpo.prioridade) exigir(["baixa", "media", "alta"].includes(corpo.prioridade), "prioridade inválida");
+    // Criada pelo painel: o lembrete vai para toda a equipe.
+    return repo.criarTarefa({ titulo: String(corpo.titulo).trim(), quando, prioridade: corpo.prioridade, notas: corpo.notas, criado_por: corpo.autor });
+  });
+
+  rota("PATCH", "/api/tarefas/(\\d+)", ({ corpo, params }) => {
+    if (corpo.status) exigir(["pendente", "feita", "cancelada"].includes(corpo.status), "status inválido");
+    const quando = corpo.quando ? normalizarDataHora(corpo.quando) : undefined;
+    if (corpo.quando) exigir(quando, "horário inválido");
+    return repo.atualizarTarefa(Number(params[0]), { status: corpo.status, quando }) || Promise.reject(new ErroHttp(404, "não encontrada"));
+  });
+
+  // ---------- Financeiro ----------
+
+  rota("GET", "/api/financeiro", ({ url }) => {
+    const hoje = agoraLocal().slice(0, 10);
+    const pessoa_id = Number(url.searchParams.get("pessoa_id")) || undefined;
+    const todos = repo.lancamentos({ pessoa_id, hoje }).filter((l) => l.status !== "cancelada");
+    const soma = (f) => todos.filter(f).reduce((t, l) => t + l.valor_centavos, 0);
+    const mes = hoje.slice(0, 7);
+    return {
+      hoje,
+      totais: {
+        atrasado: reais(soma((l) => l.tipo === "cobranca" && l.status === "aberta" && l.data < hoje)),
+        a_receber: reais(soma((l) => l.tipo === "cobranca" && l.status === "aberta" && l.data >= hoje)),
+        recebido_mes: reais(soma((l) => l.tipo === "pagamento" && l.data.startsWith(mes))),
+      },
+      itens: repo.lancamentos({ pessoa_id, situacao: url.searchParams.get("situacao") || "tudo", hoje }).reverse(),
+    };
+  });
+
+  rota("POST", "/api/financeiro", ({ corpo }) => {
+    exigir(["cobranca", "pagamento"].includes(corpo.tipo), "tipo deve ser cobranca ou pagamento");
+    exigir(repo.pessoa(Number(corpo.pessoa_id)), "pessoa não encontrada");
+    const valor_centavos = Math.round(Number(String(corpo.valor).replace(/\./g, "").replace(",", ".")) * 100);
+    exigir(valor_centavos > 0, "valor inválido");
+    const data = normalizarData(corpo.data) || agoraLocal().slice(0, 10);
+    return repo.criarLancamento({ pessoa_id: Number(corpo.pessoa_id), tipo: corpo.tipo, valor_centavos, data, descricao: corpo.descricao, forma: corpo.forma });
+  });
+
+  rota("PATCH", "/api/financeiro/(\\d+)", ({ corpo, params }) => {
+    exigir(["aberta", "paga", "cancelada"].includes(corpo.status), "status inválido");
+    return repo.atualizarLancamento(Number(params[0]), { status: corpo.status }) || Promise.reject(new ErroHttp(404, "não encontrado"));
+  });
+
+  // ---------- Histórico, anotações e arquivos de cada pessoa ----------
+
+  rota("GET", "/api/pessoas/(\\d+)/historico", ({ params }) => {
+    const id = Number(params[0]);
+    if (!repo.pessoa(id)) throw new ErroHttp(404, "não encontrada");
+    return {
+      registros: repo.registros({ pessoa_id: id, limite: 200 }).map(({ caminho, ...r }) => r),
+      lancamentos: repo.lancamentos({ pessoa_id: id }).reverse(),
+      sessoes: repo.agenda({ de: "0000", ate: "9999", pessoa_id: id, incluirCancelados: true }).reverse(),
+      tarefas: repo.tarefas({ status: "todas", pessoa_id: id }),
+    };
+  });
+
+  rota("POST", "/api/pessoas/(\\d+)/anotacoes", ({ corpo, params }) => {
+    const id = Number(params[0]);
+    exigir(repo.pessoa(id), "pessoa não encontrada");
+    exigir(String(corpo.texto || "").trim(), "escreva a anotação");
+    return repo.criarRegistro({ pessoa_id: id, tipo: "nota", texto: String(corpo.texto).trim(), autor: corpo.autor });
+  });
+
+  rota("GET", "/api/arquivos/(\\d+)", ({ params }) => {
+    const r = repo.registro(Number(params[0]));
+    const dados = r?.tipo === "arquivo" ? arquivos.ler(r) : null;
+    if (!dados) throw new ErroHttp(404, "arquivo não encontrado");
+    return { binario: dados, mimetype: r.mimetype, nome: r.nome_arquivo };
+  });
+
   // Testar sem WhatsApp: as respostas voltam para o painel em vez de irem para o celular.
   rota("POST", "/api/simular", async ({ corpo }) => {
     const telefone = normalizarTelefone(corpo.telefone);
     exigir(telefone, "telefone inválido");
-    exigir(corpo.texto || corpo.audioBase64, "mande um texto ou um áudio");
+    exigir(corpo.texto || corpo.audioBase64 || corpo.arquivoBase64, "mande um texto, um áudio ou um arquivo");
     const respostas = [];
     const enviar = secretaria.criarEnvio(async (para, texto) => respostas.push({ para, texto }));
-    const msg = corpo.audioBase64
-      ? { telefone, nome: corpo.nome, tipo: "audio", audioBase64: corpo.audioBase64, mimetype: corpo.mimetype || "audio/webm" }
-      : { telefone, nome: corpo.nome, tipo: "texto", texto: String(corpo.texto) };
-    await secretaria.receber(msg, { enviar, comoEquipe: corpo.como === "equipe", semEspera: true });
+    const enviarArquivo = async (para, registro, legenda) =>
+      respostas.push({ para, texto: `📎 ${registro.nome_arquivo}${legenda ? `\n${legenda}` : ""}`, arquivo_id: registro.id });
+    let msg;
+    if (corpo.arquivoBase64) {
+      msg = { telefone, nome: corpo.nome, tipo: "midia", midiaBase64: corpo.arquivoBase64, mimetype: corpo.mimetype, nomeArquivo: corpo.nomeArquivo, legenda: corpo.texto || "" };
+    } else if (corpo.audioBase64) {
+      msg = { telefone, nome: corpo.nome, tipo: "audio", audioBase64: corpo.audioBase64, mimetype: corpo.mimetype || "audio/webm" };
+    } else {
+      msg = { telefone, nome: corpo.nome, tipo: "texto", texto: String(corpo.texto) };
+    }
+    await secretaria.receber(msg, { enviar, enviarArquivo, comoEquipe: corpo.como === "equipe", semEspera: true });
     return { respostas };
   });
 
@@ -227,7 +321,17 @@ export function criarApp({ repo, secretaria, whatsapp, config }) {
 
       const corpo = req.method === "GET" ? {} : await lerJson(req);
       const params = encontrada.padrao.exec(url.pathname).slice(1);
-      responder(res, 200, await encontrada.fn({ corpo, url, params }));
+      const resultado = await encontrada.fn({ corpo, url, params });
+      if (resultado?.binario) {
+        res.writeHead(200, {
+          "Content-Type": resultado.mimetype || "application/octet-stream",
+          "Content-Disposition": `inline; filename="${encodeURIComponent(resultado.nome || "arquivo")}"`,
+          "X-Content-Type-Options": "nosniff",
+          "Content-Security-Policy": "sandbox",
+        });
+        return res.end(resultado.binario);
+      }
+      responder(res, 200, resultado);
     } catch (e) {
       const status = e.status || 500;
       if (status === 500) console.error(`[${req.method} ${url.pathname}]`, e);

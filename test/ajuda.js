@@ -1,5 +1,6 @@
 import { abrirBanco } from "../src/db.js";
 import { criarSecretaria } from "../src/secretaria.js";
+import { criarArquivos } from "../src/arquivos.js";
 
 /** Claude falso: devolve respostas roteirizadas, na ordem, e guarda os pedidos recebidos. */
 export function claudeFalso(roteiro) {
@@ -35,8 +36,10 @@ export function montar({ roteiro = [], equipe = ["31999990000"], transcrever } =
   const whatsapp = {
     configurado: true,
     async enviarTexto(telefone, texto) { enviados.push({ telefone, texto }); },
+    async enviarArquivo(telefone, arquivo) { enviados.push({ telefone, arquivo }); },
     async baixarMidia() { return { base64: "AAAA", mimetype: "audio/ogg" }; },
   };
+  const arquivos = criarArquivos({ repo, caminhoBanco: ":memory:" });
   const config = {
     numerosEquipe: equipe,
     nomeNegocio: "Mentoria Teste",
@@ -48,8 +51,8 @@ export function montar({ roteiro = [], equipe = ["31999990000"], transcrever } =
     resumoDiarioHora: 7,
   };
   const secretaria = criarSecretaria({
-    repo, claude, whatsapp, config,
+    repo, claude, whatsapp, arquivos, config,
     transcrever: transcrever || (async () => "texto transcrito"),
   });
-  return { repo, claude, enviados, secretaria, config };
+  return { repo, claude, enviados, secretaria, arquivos, config };
 }

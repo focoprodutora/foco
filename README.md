@@ -22,10 +22,26 @@ Secretária eletrônica no WhatsApp para organizar mentoradas, mentores, agenda,
 | "Tem alguém esperando no suporte?" | Lista atendimentos abertos e há quanto tempo esperam. |
 | "Responde a Paula dizendo que o link novo já foi enviado e encerra" | Responde a pessoa no WhatsApp e fecha o atendimento. |
 | "A sessão da Juliana foi ótima, falamos sobre precificação" | Guarda a anotação no histórico da sessão. |
+| **Tarefas e lembretes** | |
+| "Me lembra amanhã às 9 de ligar para a Juliana" | Cria a tarefa e manda o lembrete no WhatsApp na hora. Responda "feito" ou "adia para as 11". |
+| "O que eu tenho para hoje?" / "O que está atrasado?" | Lista as tarefas. |
+| **Financeiro das mentoradas** | |
+| "A Juliana tem parcela de 500 todo dia 10, a próxima é em novembro" | Registra a cobrança com vencimento. |
+| "A Juliana pagou 500 no pix" | Registra o pagamento e dá baixa na cobrança aberta. |
+| "Quem está atrasada?" / "Quanto entrou este mês?" | Lista atrasos e totais. Só registra: não cobra nem faz pagamentos. |
+| **Fotos e documentos** | |
+| Foto de ficha de inscrição | Lê a ficha e cadastra a mentorada. |
+| Print ou PDF de comprovante + "da Juliana" | Registra o pagamento com o comprovante anexado. |
+| **Anotações e arquivos** | |
+| "Anota que a Juliana prefere sessões de manhã" | Guarda no histórico dela. |
+| PDF do contrato + "guarda o contrato da Juliana" | Arquiva o documento na ficha dela. |
+| "Me manda o contrato da Juliana" | Envia o arquivo de volta no WhatsApp. |
 
 **Automático, sem ninguém pedir:**
 - Lembrete para a mentorada 24h antes e 1h antes da sessão.
-- Resumo diário no WhatsApp da equipe (padrão: 7h) com as sessões do dia e o suporte pendente.
+- Lembrete das tarefas da equipe na hora marcada.
+- Resumo diário no WhatsApp da equipe (padrão: 7h) com as sessões e tarefas do dia, cobranças que vencem ou estão
+  em atraso, e o suporte pendente.
 - Alerta para a equipe quando um atendimento fica mais de 2h sem resposta.
 - Alerta imediato quando chega algo **urgente** no suporte.
 - Quando alguém da equipe assume um atendimento, a secretária para de responder por cima.

@@ -104,7 +104,10 @@ function abrirAba(aba) {
   abaAtual = aba;
   for (const b of document.querySelectorAll("#abas button")) b.classList.toggle("ativa", b.dataset.aba === aba);
   for (const s of document.querySelectorAll("main section")) s.hidden = s.dataset.secao !== aba;
-  ({ geral: carregarGeral, suporte: carregarTickets, pessoas: carregarPessoas, agenda: carregarAgenda, palestras: carregarPalestras })[aba]?.();
+  ({
+    geral: carregarGeral, suporte: carregarTickets, pessoas: carregarPessoas, agenda: carregarAgenda,
+    tarefas: carregarTarefas, financeiro: carregarFinanceiro, palestras: carregarPalestras,
+  })[aba]?.();
 }
 
 // ---------- visão geral ----------
@@ -339,7 +342,9 @@ function editarPessoa(p) {
     <label>Status <select name="status"><option>ativa</option><option>pausada</option><option>finalizada</option></select></label>
     <label>Observações <textarea name="observacoes" rows="3">${esc(p?.observacoes)}</textarea></label>
     <p class="erro" id="erro-dialogo"></p>
-    <div class="acoes"><button value="cancelar" class="secundario" formnovalidate>Cancelar</button><button value="salvar">Salvar</button></div>`;
+    <div class="acoes">${p ? `<button type="button" class="secundario" id="ver-historico" style="margin-right:auto">Histórico, notas e arquivos</button>` : ""}
+      <button value="cancelar" class="secundario" formnovalidate>Cancelar</button><button value="salvar">Salvar</button></div>`;
+  if (p) $("#ver-historico").addEventListener("click", () => { $("#dialogo").close(); abrirHistorico(p); });
   f.tipo.value = p?.tipo || "mentorada";
   f.status.value = p?.status || "ativa";
   abrirDialogo(async (dados) => {
@@ -361,6 +366,159 @@ function abrirDialogo(aoSalvar) {
   };
   d.showModal();
 }
+
+// ---------- histórico da pessoa ----------
+
+function reais(centavos) {
+  return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function etiquetaLancamento(l) {
+  const st = l.tipo === "cobranca" && l.status === "aberta" && l.data < hojeLocal() ? "atrasada" : l.status;
+  return `<span class="etiqueta st-${esc(st)}">${esc(st)}</span>`;
+}
+
+function dataBr(aaaammdd) {
+  return String(aaaammdd || "").slice(0, 10).split("-").reverse().join("/");
+}
+
+async function abrirArquivo(id) {
+  const r = await fetch(`/api/arquivos/${id}`, { headers: { "x-painel-senha": senha } });
+  if (!r.ok) { toast("Arquivo não encontrado."); return; }
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+document.addEventListener("click", (e) => {
+  const link = e.target.closest("[data-arquivo]");
+  if (link) { e.preventDefault(); abrirArquivo(link.dataset.arquivo); }
+});
+
+async function abrirHistorico(p) {
+  const d = $("#dialogo");
+  const f = $("#form-dialogo");
+  const h = await api(`/api/pessoas/${p.id}/historico`);
+  const notas = h.registros.filter((r) => r.tipo === "nota");
+  const arqs = h.registros.filter((r) => r.tipo === "arquivo");
+  const item = (conteudo, rodape) => `<li>${conteudo}${rodape ? `<p class="sutil">${rodape}</p>` : ""}</li>`;
+  const vazio = (txt) => `<li class="sutil">${txt}</li>`;
+  f.onsubmit = null;
+  f.innerHTML = `<h2>${esc(p.nome)}</h2>
+    <p class="sutil">${esc(telefone(p.telefone))} · ${esc([p.cidade, p.estado].filter(Boolean).join("/") || "sem cidade")} · ${esc(p.status)}</p>
+    <div class="historico">
+      <section><h3>Anotações</h3><ul>${notas.map((n) => item(esc(n.texto), `${esc(n.autor || "")} · ${quando(n.criado_em)}`)).join("") || vazio("Nenhuma anotação.")}</ul>
+        <div class="enviar" style="margin-top:.5rem"><input id="nova-nota" placeholder="Nova anotação"><button type="button" id="salvar-nota">Anotar</button></div></section>
+      <section><h3>Arquivos</h3><ul>${arqs.map((a) => item(`<a href="#" data-arquivo="${a.id}">📎 ${esc(a.titulo || a.nome_arquivo)}</a>`, `${esc(a.nome_arquivo)} · ${quando(a.criado_em)}`)).join("") || vazio("Nenhum arquivo. Mande foto ou PDF no WhatsApp e peça para guardar.")}</ul></section>
+      <section><h3>Financeiro</h3><ul>${h.lancamentos.map((l) => item(`${l.tipo === "cobranca" ? "Cobrança" : "Pagamento"} ${reais(l.valor_centavos)} · ${dataBr(l.data)} · ${etiquetaLancamento(l)}`, esc(l.descricao || ""))).join("") || vazio("Nada lançado.")}</ul></section>
+      <section><h3>Sessões</h3><ul>${h.sessoes.map((s) => item(`${quando(s.inicio)} · ${esc(s.status)}${s.mentor_nome ? ` · com ${esc(s.mentor_nome)}` : ""}`, esc(s.notas || ""))).join("") || vazio("Nenhuma sessão.")}</ul></section>
+      <section><h3>Tarefas</h3><ul>${h.tarefas.map((t) => item(`${esc(t.titulo)} · ${esc(t.status)}`, t.quando ? quando(t.quando) : "")).join("") || vazio("Nenhuma tarefa.")}</ul></section>
+    </div>
+    <div class="acoes"><button value="fechar" class="secundario">Fechar</button></div>`;
+  $("#salvar-nota").addEventListener("click", async () => {
+    const texto = $("#nova-nota").value.trim();
+    if (!texto) return;
+    try {
+      await api(`/api/pessoas/${p.id}/anotacoes`, { metodo: "POST", corpo: { texto, autor: nomeEquipe() } });
+      abrirHistorico(p);
+    } catch (err) { toast(err.message); }
+  });
+  if (!d.open) {
+    d.classList.add("largo");
+    d.showModal();
+    d.addEventListener("close", () => d.classList.remove("largo"), { once: true });
+  }
+}
+
+// ---------- tarefas ----------
+
+$("#filtro-tarefas").addEventListener("change", carregarTarefas);
+
+async function carregarTarefas() {
+  const lista = await api(`/api/tarefas?filtro=${$("#filtro-tarefas").value}`);
+  const agora = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 16);
+  $("#lista-tarefas").innerHTML = lista.map((t) => {
+    const atrasada = t.status === "pendente" && t.quando && t.quando < agora;
+    return `<li class="${t.status === "feita" ? "feita" : ""} ${atrasada ? "atrasada" : ""}">
+      <input type="checkbox" data-tarefa="${t.id}" ${t.status === "feita" ? "checked" : ""} aria-label="Concluir">
+      <div><div class="titulo">${esc(t.titulo)}</div>
+        <div class="meta">${t.quando ? `${atrasada ? "atrasada · " : "⏰ "}${quando(t.quando)}` : "sem horário"}${t.pessoa_nome ? ` · ${esc(t.pessoa_nome)}` : ""}${t.criado_por ? ` · pedida por ${esc(t.criado_por)}` : ""}</div></div>
+      <span class="etiqueta p-${t.prioridade === "media" ? "media" : esc(t.prioridade)}">${esc(t.prioridade)}</span>
+    </li>`;
+  }).join("") || `<li class="sutil" style="display:block">Nenhuma tarefa aqui.</li>`;
+}
+
+$("#lista-tarefas").addEventListener("change", async (e) => {
+  const id = e.target.dataset.tarefa;
+  if (!id) return;
+  try {
+    await api(`/api/tarefas/${id}`, { metodo: "PATCH", corpo: { status: e.target.checked ? "feita" : "pendente" } });
+    carregarTarefas();
+  } catch (err) { toast(err.message); }
+});
+
+$("#form-tarefa").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const dados = Object.fromEntries(new FormData(e.target));
+  try {
+    await api("/api/tarefas", { metodo: "POST", corpo: { ...dados, quando: dados.quando || null, autor: nomeEquipe() } });
+    e.target.reset();
+    carregarTarefas();
+  } catch (err) { toast(err.message); }
+});
+
+// ---------- financeiro ----------
+
+$("#filtro-financeiro").addEventListener("change", carregarFinanceiro);
+
+async function carregarFinanceiro() {
+  const r = await api(`/api/financeiro?situacao=${$("#filtro-financeiro").value}`);
+  $("#kpis-financeiro").innerHTML = [
+    [r.totais.atrasado, "em atraso", true],
+    [r.totais.a_receber, "a receber"],
+    [r.totais.recebido_mes, "recebido este mês"],
+  ].map(([v, rotulo, alerta]) => `<div class="kpi ${alerta && v !== reais(0) ? "alerta" : ""}"><b>${esc(v)}</b><span>${rotulo}</span></div>`).join("");
+  $("#tabela-financeiro").innerHTML = `<thead><tr><th>Data</th><th>Mentorada</th><th>Tipo</th><th class="valor">Valor</th><th>Situação</th><th>Descrição</th><th></th></tr></thead>
+    <tbody>${r.itens.map((l) => {
+      return `<tr>
+        <td>${dataBr(l.data)}</td><td>${esc(l.pessoa_nome)}</td><td>${l.tipo === "cobranca" ? "Cobrança" : "Pagamento"}${l.forma ? ` · ${esc(l.forma)}` : ""}</td>
+        <td class="valor">${reais(l.valor_centavos)}</td><td>${etiquetaLancamento(l)}</td>
+        <td class="sutil">${esc(l.descricao || "")}${l.arquivo_id ? ` <a href="#" data-arquivo="${l.arquivo_id}">📎 comprovante</a>` : ""}</td>
+        <td>${l.tipo === "cobranca" && l.status === "aberta" ? `<button class="secundario" data-baixa="${l.id}">Dar baixa</button>` : ""}</td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="7" class="sutil">Nada por aqui.</td></tr>`}</tbody>`;
+}
+
+$("#tabela-financeiro").addEventListener("click", async (e) => {
+  const id = e.target.dataset.baixa;
+  if (!id) return;
+  try {
+    await api(`/api/financeiro/${id}`, { metodo: "PATCH", corpo: { status: "paga" } });
+    carregarFinanceiro();
+  } catch (err) { toast(err.message); }
+});
+
+$("#novo-lancamento").addEventListener("click", async () => {
+  const pessoas = await api("/api/pessoas?tipo=mentorada");
+  const f = $("#form-dialogo");
+  f.innerHTML = `<h2>Lançar no financeiro</h2>
+    <label>Tipo <select name="tipo"><option value="pagamento">Pagamento recebido</option><option value="cobranca">Cobrança (a receber)</option></select></label>
+    <label>Mentorada <select name="pessoa_id" required>${pessoas.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join("")}</select></label>
+    <label>Valor (R$) <input name="valor" inputmode="decimal" placeholder="500,00" required></label>
+    <label>Data (pagamento) ou vencimento (cobrança) <input name="data" type="date" value="${hojeLocal()}"></label>
+    <label>Forma <select name="forma"><option value="">—</option><option>pix</option><option>cartao</option><option>boleto</option><option>dinheiro</option><option>transferencia</option></select></label>
+    <label>Descrição <input name="descricao" placeholder="Ex.: Parcela 2/6"></label>
+    <p class="erro" id="erro-dialogo"></p>
+    <div class="acoes"><button value="cancelar" class="secundario" formnovalidate>Cancelar</button><button value="salvar">Salvar</button></div>`;
+  abrirDialogo(async (dados) => {
+    await api("/api/financeiro", { metodo: "POST", corpo: dados });
+    carregarFinanceiro();
+  });
+});
 
 // ---------- agenda ----------
 
@@ -468,6 +626,17 @@ $("#sim-gravar").addEventListener("click", async () => {
   };
   gravador.start();
   $("#sim-gravar").classList.add("gravando");
+});
+
+$("#sim-arquivo").addEventListener("change", async (e) => {
+  const arquivo = e.target.files[0];
+  e.target.value = "";
+  if (!arquivo) return;
+  if (arquivo.size > 10 * 1024 * 1024) { toast("Arquivo grande demais para o teste (máx. 10 MB)."); return; }
+  const base64 = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.readAsDataURL(arquivo); });
+  const legenda = $("#sim-texto").value.trim();
+  $("#sim-texto").value = "";
+  simular({ arquivoBase64: base64, mimetype: arquivo.type, nomeArquivo: arquivo.name, texto: legenda }, `📎 ${arquivo.name}${legenda ? `\n${legenda}` : ""}`);
 });
 
 // ---------- início ----------
