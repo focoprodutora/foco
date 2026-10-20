@@ -1,0 +1,17 @@
+{
+  "name": "foco-secretaria",
+  "version": "1.0.0",
+  "description": "Secretária eletrônica no WhatsApp: cadastro e agenda de mentoradas por áudio, organização por estado e fila de suporte.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
+  }
+}

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secretária Foco</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="login" class="login" hidden>
+    <form id="form-login" class="cartao">
+      <h1>Secretária Foco</h1>
+      <p class="sutil">Painel da equipe</p>
+      <label>Senha do painel <input type="password" id="senha" autocomplete="current-password" required></label>
+      <button type="submit">Entrar</button>
+      <p id="erro-login" class="erro"></p>
+    </form>
+  </div>
+
+  <div id="app" hidden>
+    <header class="topo">
+      <strong class="marca">Secretária Foco</strong>
+      <nav id="abas">
+        <button data-aba="geral" class="ativa">Visão geral</button>
+        <button data-aba="suporte">Suporte <span id="badge-suporte" class="badge" hidden></span></button>
+        <button data-aba="pessoas">Mentoradas e mentores</button>
+        <button data-aba="agenda">Agenda</button>
+        <button data-aba="palestras">Palestras</button>
+        <button data-aba="simulador">Testar</button>
+      </nav>
+      <button id="sair" class="link">Sair</button>
+    </header>
+
+    <main>
+      <!-- Visão geral -->
+      <section data-secao="geral">
+        <div id="avisos"></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="duas-colunas">
+          <div class="cartao">
+            <h2>Por estado</h2>
+            <p class="sutil">Clique num estado para ver as pessoas de lá.</p>
+            <div id="mapa-estados" class="estados"></div>
+          </div>
+          <div class="cartao">
+            <h2>Sessões de hoje</h2>
+            <ul id="hoje" class="lista"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Suporte -->
+      <section data-secao="suporte" hidden>
+        <div class="filtros">
+          <select id="filtro-ticket">
+            <option value="abertos">Em aberto</option>
+            <option value="aberto">Ninguém assumiu</option>
+            <option value="em_atendimento">Em atendimento</option>
+            <option value="resolvido">Resolvidos</option>
+          </select>
+        </div>
+        <div class="suporte">
+          <ul id="tickets" class="tickets"></ul>
+          <div id="conversa" class="cartao conversa">
+            <p class="sutil">Escolha um atendimento à esquerda.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pessoas -->
+      <section data-secao="pessoas" hidden>
+        <div class="filtros">
+          <input id="busca-pessoa" type="search" placeholder="Buscar por nome ou telefone">
+          <select id="filtro-tipo"><option value="">Todos</option><option value="mentorada">Mentoradas</option><option value="mentor">Mentores</option></select>
+          <select id="filtro-estado"><option value="">Todos os estados</option></select>
+          <select id="filtro-status"><option value="">Qualquer status</option><option value="ativa">Ativa</option><option value="pausada">Pausada</option><option value="finalizada">Finalizada</option></select>
+          <button id="nova-pessoa">+ Cadastrar</button>
+        </div>
+        <div class="tabela-rolagem"><table id="tabela-pessoas"></table></div>
+      </section>
+
+      <!-- Agenda -->
+      <section data-secao="agenda" hidden>
+        <div class="filtros">
+          <label>De <input type="date" id="agenda-de"></label>
+          <label>Até <input type="date" id="agenda-ate"></label>
+        </div>
+        <div id="agenda"></div>
+      </section>
+
+      <!-- Palestras -->
+      <section data-secao="palestras" hidden>
+        <form id="form-palestra" class="cartao filtros">
+          <input name="titulo" placeholder="Título da palestra" required>
+          <select name="estado" required></select>
+          <input name="cidade" placeholder="Cidade" required>
+          <input name="data" type="date" required>
+          <input name="local" placeholder="Local (opcional)">
+          <button type="submit">Registrar</button>
+        </form>
+        <div class="tabela-rolagem"><table id="tabela-palestras"></table></div>
+      </section>
+
+      <!-- Simulador -->
+      <section data-secao="simulador" hidden>
+        <div class="cartao">
+          <h2>Testar sem WhatsApp</h2>
+          <p class="sutil">Fale ou escreva como se fosse no WhatsApp. As respostas aparecem aqui e <strong>não</strong> são enviadas para ninguém.</p>
+          <div class="filtros">
+            <select id="sim-como">
+              <option value="equipe">Como alguém da equipe (secretária)</option>
+              <option value="cliente">Como mentorada/cliente (suporte)</option>
+            </select>
+            <input id="sim-nome" placeholder="Nome" value="Teste">
+            <input id="sim-telefone" placeholder="Telefone com DDD" value="11900000000">
+          </div>
+          <div id="sim-chat" class="chat"></div>
+          <form id="form-sim" class="enviar">
+            <input id="sim-texto" placeholder='Ex.: "Cadastra a Juliana Martins de Uberlândia, Minas, 31 98877-6655"'>
+            <button type="button" id="sim-gravar" title="Gravar áudio">🎤</button>
+            <button type="submit">Enviar</button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="dialogo"><form method="dialog" id="form-dialogo"></form></dialog>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
