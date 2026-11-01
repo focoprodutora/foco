@@ -41,7 +41,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {MODO_DEMO && <div className="banner-demo">Modo demonstração · conecte o Supabase para análises reais</div>}
+      {MODO_DEMO && <div className="banner-demo">Modo de teste · análise real com IA · o histórico não é salvo</div>}
 
       {tela.nome === "inicio" && <Inicio perfil={perfil} ir={ir} />}
       {tela.nome === "capturar" && (
@@ -50,7 +50,7 @@ export default function App() {
           perfil={perfil}
           voltar={() => ir({ nome: "inicio" })}
           concluido={(analise, creditos) => {
-            setPerfil((p) => (p ? { ...p, creditos } : p));
+            if (creditos !== undefined) setPerfil((p) => (p ? { ...p, creditos } : p));
             ir({ nome: "resultado", analise });
           }}
           semCreditos={() => ir({ nome: "planos" })}

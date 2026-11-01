@@ -3,6 +3,12 @@ import { segmentoPorId } from "../lib/segmentos";
 import type { Analise } from "../types";
 import type { Tela } from "../App";
 
+const CONFIANCA = {
+  alta: "Confiança alta: a foto permite avaliar bem",
+  media: "Confiança média: a foto tem limitações",
+  baixa: "Confiança baixa: a foto dificulta a avaliação, trate como indicativo",
+} as const;
+
 const ROTULO = { alta: "Prioridade alta", media: "Prioridade média", baixa: "Ajuste fino" } as const;
 
 export default function ResultadoTela({ analise, ir }: { analise: Analise; ir: (t: Tela) => void }) {
@@ -36,6 +42,7 @@ export default function ResultadoTela({ analise, ir }: { analise: Analise; ir: (
           </div>
         </div>
         <p style={{ marginTop: 16, fontSize: 15, opacity: 0.9 }}>{r.resumo}</p>
+        <p style={{ marginTop: 12, fontSize: 12, color: "var(--pessego)" }}>● {CONFIANCA[r.confianca] ?? CONFIANCA.media}</p>
       </div>
 
       {!r.foto.adequada && (
@@ -43,17 +50,17 @@ export default function ResultadoTela({ analise, ir }: { analise: Analise; ir: (
           <span>A foto limita a precisão da análise. {r.foto.dica_para_foto}</span></div>
       )}
 
-      <section className="cartao">
-        <h3>O que está ótimo</h3>
+      {r.pontos_fortes.length > 0 && <section className="cartao">
+        <h3>O que está bom</h3>
         <ul className="lista-fortes" style={{ marginTop: 8 }}>
           {r.pontos_fortes.map((p) => <li key={p}><CheckCircle2 size={18} />{p}</li>)}
         </ul>
-      </section>
+      </section>}
 
-      <div>
+      {r.melhorias.length > 0 && <div>
         <p className="eyebrow">Plano de evolução</p>
         <h2 style={{ marginTop: 4 }}>O que melhorar</h2>
-      </div>
+      </div>}
       {r.melhorias.map((m, i) => (
         <section key={i} className={`cartao melhoria ${m.prioridade}`}>
           <div className="linha entre">
@@ -71,8 +78,10 @@ export default function ResultadoTela({ analise, ir }: { analise: Analise; ir: (
         <div style={{ marginTop: 14 }}>
           {r.criterios.map((c) => (
             <div className="criterio" key={c.nome}>
-              <div className="linha entre"><b>{c.nome}</b><span>{Number(c.nota).toFixed(1)}</span></div>
-              <div className="barra"><div style={{ width: `${Math.max(0, Math.min(10, c.nota)) * 10}%` }} /></div>
+              <div className="linha entre"><b>{c.nome}</b><span>{c.avaliavel === false ? "–" : Number(c.nota).toFixed(1)}</span></div>
+              {c.avaliavel === false
+                ? <p className="sub" style={{ fontSize: 12 }}>Não dá para avaliar nesta foto</p>
+                : <div className="barra"><div style={{ width: `${Math.max(0, Math.min(10, c.nota)) * 10}%` }} /></div>}
               {c.comentario && <p className="sub" style={{ fontSize: 12, marginTop: 4 }}>{c.comentario}</p>}
             </div>
           ))}

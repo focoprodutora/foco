@@ -32,7 +32,7 @@ npm install
 npm run dev
 ```
 
-Sem o arquivo `.env`, o app abre em **modo demonstração** (análise de exemplo, sem login). Bom para mostrar o visual.
+Sem o arquivo `.env`, o app abre em **modo de teste** (sem login e sem histórico). Ele nunca mostra resultado inventado: aberto pelo Claude (`npm run build:demo` gera um HTML único), analisa a foto de verdade com a conta do Claude de quem testa; fora do Claude, avisa que a análise não está disponível.
 
 ## Colocar no ar com Supabase (passo a passo)
 
@@ -108,3 +108,12 @@ Tipografia: **Fraunces** (títulos, serifada elegante) + **Inter** (textos).
 - Gerar card da análise para postar no Instagram
 - Modo **educadora**: avaliar alunas de cursos
 - Publicação nas lojas com Capacitor
+
+## Compromisso de honestidade da análise
+
+As regras ficam em `supabase/functions/_shared/analise.ts` e valem igual para o app e para o modo de teste:
+
+- A IA primeiro confere se a foto mostra mesmo o procedimento do segmento escolhido. Se não mostrar, ela **recusa**, explica o motivo, **não dá nota e não desconta crédito**.
+- Critério que não aparece na foto fica como **"não dá para avaliar"**, sem nota chutada.
+- Toda análise mostra o **nível de confiança** (alta, média ou baixa).
+- As notas são calibradas, sem nota de consolação, e os pontos fortes só aparecem quando existem de verdade.
