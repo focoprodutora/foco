@@ -1,3 +1,4 @@
+import icone from "../assets/icon.svg";
 import { useState } from "react";
 import { Mail, Lock, User } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -34,7 +35,7 @@ export default function Login() {
     <div className="login app" style={{ paddingBottom: 0 }}>
       <div className="login-hero">
         <div className="marca" style={{ color: "var(--creme)" }}>
-          <img src="/icons/icon.svg" alt="" /> Foco Beauty
+          <img src={icone} alt="" /> Foco Beauty
         </div>
         <h1>Seu olhar técnico,<br /><span className="destaque" style={{ color: "var(--pessego)" }}>em segundos.</span></h1>
         <p style={{ marginTop: 12, opacity: 0.8 }}>Fotografe o procedimento e receba uma análise com o que está ótimo e o que dá para melhorar.</p>

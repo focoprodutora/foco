@@ -15,6 +15,7 @@ export default function Planos({ perfil, aoSalvar }: { perfil: Perfil | null; ao
   const [nome, setNome] = useState("");
   const [studio, setStudio] = useState("");
   const [salvo, setSalvo] = useState(false);
+  const [aviso, setAviso] = useState("");
   useEffect(() => { setNome(perfil?.nome ?? ""); setStudio(perfil?.studio ?? ""); }, [perfil]);
 
   return (
@@ -39,10 +40,11 @@ export default function Planos({ perfil, aoSalvar }: { perfil: Perfil | null; ao
           <ul>{p.itens.map((i) => <li key={i}>{i}</li>)}</ul>
           {p.id !== "gratis" && (
             <button className={`btn ${p.id === "pro" ? "btn-cobre" : "btn-claro"}`} style={{ marginTop: 14 }}
-              onClick={() => alert("Pagamentos em breve! Fale com a gente para liberar seu plano.")}>
+              onClick={() => setAviso(p.id)}>
               {perfil?.plano === p.id ? <><Check size={18} /> Seu plano</> : `Assinar ${p.nome}`}
             </button>
           )}
+          {aviso === p.id && <p className="sub" style={{ marginTop: 10, color: "var(--cobre-escuro)" }}>Pagamentos em breve! Fale com a gente para liberar seu plano.</p>}
         </div>
       ))}
 

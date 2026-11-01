@@ -1,3 +1,4 @@
+import icone from "../assets/icon.svg";
 import { useEffect, useState } from "react";
 import { ArrowRight, Download } from "lucide-react";
 import { SEGMENTOS } from "../lib/segmentos";
@@ -19,7 +20,7 @@ export default function Inicio({ perfil, ir }: { perfil: Perfil | null; ir: (t: 
   return (
     <div className="pagina pilha">
       <div className="topo">
-        <div className="marca"><img src="/icons/icon.svg" alt="" /> Foco Beauty</div>
+        <div className="marca"><img src={icone} alt="" /> Foco Beauty</div>
         <button className="chip-creditos" onClick={() => ir({ nome: "planos" })}>
           <b>{perfil?.creditos ?? "–"}</b> análises
         </button>
