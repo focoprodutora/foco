@@ -1,0 +1,4 @@
+project_id = "foco-beauty"
+
+[functions.analyze]
+verify_jwt = true
