@@ -35,10 +35,10 @@ export default function Login() {
     <div className="login app" style={{ paddingBottom: 0 }}>
       <div className="login-hero">
         <div className="marca" style={{ color: "var(--creme)" }}>
-          <img src={icone} alt="" /> Foco Beauty
+          <img src={icone} alt="" /> Capricha
         </div>
-        <h1>Seu olhar técnico,<br /><span className="destaque" style={{ color: "var(--pessego)" }}>em segundos.</span></h1>
-        <p style={{ marginTop: 12, opacity: 0.8 }}>Fotografe o procedimento e receba uma análise com o que está ótimo e o que dá para melhorar.</p>
+        <h1>Sua mentora<br /><span className="destaque" style={{ color: "var(--pessego)" }}>de bolso.</span></h1>
+        <p style={{ marginTop: 12, opacity: 0.8 }}>Fotografe o procedimento e receba uma análise honesta: o que está bom e o que dá para caprichar mais.</p>
       </div>
 
       <form className="login-form pilha" onSubmit={enviar}>

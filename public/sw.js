@@ -1,5 +1,5 @@
 // Service worker simples: deixa o app instalável e abre rápido mesmo com internet ruim.
-const CACHE = "foco-beauty-v1";
+const CACHE = "capricha-v1";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon.svg", "/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {

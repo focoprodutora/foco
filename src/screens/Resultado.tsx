@@ -17,7 +17,7 @@ export default function ResultadoTela({ analise, ir }: { analise: Analise; ir: (
   const nota = Number(r.nota_geral) || 0;
 
   function compartilhar() {
-    const texto = `Minha análise Foco Beauty ✦ ${r.procedimento_identificado}: nota ${nota.toFixed(1)}\n\nPróximo passo: ${r.melhorias[0]?.titulo ?? ""}\n\nDica de ouro: ${r.dica_de_ouro}`;
+    const texto = `Minha análise no Capricha ✦ ${r.procedimento_identificado}: nota ${nota.toFixed(1)}\n\nPróximo passo: ${r.melhorias[0]?.titulo ?? ""}\n\nDica de ouro: ${r.dica_de_ouro}`;
     if (navigator.share) navigator.share({ title: "Minha análise", text: texto }).catch(() => {});
     else navigator.clipboard.writeText(texto);
   }

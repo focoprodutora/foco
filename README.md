@@ -1,4 +1,6 @@
-# Foco Beauty · análise de procedimentos de beleza com IA
+# Capricha · sua mentora de bolso
+
+App de análise de procedimentos de beleza com IA.
 
 A profissional tira uma foto do procedimento (cílios, unhas, sobrancelhas, maquiagem, cabelo, micropigmentação, estética…) e recebe em segundos:
 

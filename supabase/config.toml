@@ -1,4 +1,4 @@
-project_id = "foco-beauty"
+project_id = "capricha"
 
 [functions.analyze]
 verify_jwt = true

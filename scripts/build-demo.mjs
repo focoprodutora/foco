@@ -17,5 +17,5 @@ for (const f of readdirSync(`${out}/assets`)) {
   if (f.endsWith(".css")) html = html.replace(new RegExp(`<link[^>]*href="/assets/${f}"[^>]*>`), () => `<style>${code}</style>`);
 }
 html = html.replace(/<link rel="(manifest|icon|apple-touch-icon)"[^>]*>\n?\s*/g, "");
-writeFileSync(`${out}/foco-beauty-demo.html`, html);
-console.log(`ok: ${out}/foco-beauty-demo.html (${(html.length / 1024).toFixed(0)} KB)`);
+writeFileSync(`${out}/capricha-teste.html`, html);
+console.log(`ok: ${out}/capricha-teste.html (${(html.length / 1024).toFixed(0)} KB)`);

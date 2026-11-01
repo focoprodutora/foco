@@ -20,7 +20,7 @@ export default function Inicio({ perfil, ir }: { perfil: Perfil | null; ir: (t: 
   return (
     <div className="pagina pilha">
       <div className="topo">
-        <div className="marca"><img src={icone} alt="" /> Foco Beauty</div>
+        <div className="marca"><img src={icone} alt="" /> Capricha</div>
         <button className="chip-creditos" onClick={() => ir({ nome: "planos" })}>
           <b>{perfil?.creditos ?? "–"}</b> análises
         </button>
@@ -28,7 +28,7 @@ export default function Inicio({ perfil, ir }: { perfil: Perfil | null; ir: (t: 
 
       <div>
         <p className="eyebrow">Olá{primeiroNome ? `, ${primeiroNome}` : ""} ✦</p>
-        <h1 style={{ marginTop: 6 }}>O que vamos <span className="destaque">aperfeiçoar</span> hoje?</h1>
+        <h1 style={{ marginTop: 6 }}>Bora <span className="destaque">caprichar</span> hoje?</h1>
       </div>
 
       <div className="cartao-escuro">
