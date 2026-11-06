@@ -65,7 +65,7 @@ type Sample = { json: (input: string, opts: object) => Promise<unknown> };
 type ClaudeRuntime = { use: (nome: string) => Promise<Sample | null> };
 
 const MENSAGENS: Record<string, string> = {
-  not_granted: "Para analisar, é preciso permitir que esta página use o Claude.",
+  not_granted: "Para analisar, toque em permitir quando o Claude perguntar. Esta versão de teste usa a sua conta do Claude.",
   rate_limited: "Muitas análises seguidas. Espere um pouco e tente de novo.",
   image_rejected: "Não consegui ler esta imagem. Tente outra foto (JPG ou PNG).",
   images_unavailable: "Este aparelho não consegue enviar imagens para a análise.",
@@ -76,7 +76,7 @@ const MENSAGENS: Record<string, string> = {
 async function analisarPeloClaude(foto: Blob, segmento: string, observacoes: string): Promise<Resultado> {
   const runtime = (window as unknown as { claude?: ClaudeRuntime }).claude;
   const sample = runtime ? await runtime.use("sample") : null;
-  if (!sample) throw new Error("A análise com IA só funciona abrindo o link pelo Claude ou com o Supabase conectado. Nenhum resultado foi inventado.");
+  if (!sample) throw new Error("Esta versão de teste só analisa quando aberta dentro do Claude, com uma conta do Claude logada. Nenhum resultado foi inventado.");
   try {
     const bruto = await sample.json(pedidoComFormato(segmento, observacoes), { images: [foto], cache: false });
     const r = normalizar(bruto) as Resultado;
