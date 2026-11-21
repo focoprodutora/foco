@@ -94,14 +94,16 @@ public/           manifest, service worker e ícones do app
 
 | Cor | Hex | Uso |
 |---|---|---|
-| Ébano | `#141111` | títulos, botões principais, cartões de destaque |
-| Cobre (laranja da marca) | `#E8743B` | destaques, notas, botão "Analisar" |
-| Cobre escuro | `#C4561F` | texto laranja sobre fundo claro (contraste) |
-| Pêssego | `#F7C9A4` | detalhes suaves |
-| Nude | `#F3E4D8` | superfícies e ícones |
-| Creme | `#FFF8F2` | fundo |
+| Bordô | `#5B1A2E` | títulos, botões principais |
+| Bordô profundo | `#2E0A16` | fundo dos cartões de destaque (em degradê com o bordô) |
+| Dourado | `#C6A15B` | destaques, nota, ícones ativos, filetes |
+| Dourado claro | `#E9D3A3` | texto dourado sobre bordô |
+| Dourado escuro | `#85632A` | texto dourado sobre fundo claro (contraste) |
+| Champanhe | `#F1E2C4` | detalhes suaves, dica de ouro |
+| Rosé | `#F5EAE7` | superfícies |
+| Marfim | `#FBF7F2` | fundo |
 
-Tipografia: **Fraunces** (títulos, serifada elegante) + **Inter** (textos).
+Tipografia: **Playfair Display** (títulos, serifada clássica) + **Inter** (textos).
 
 ## Próximos passos sugeridos
 

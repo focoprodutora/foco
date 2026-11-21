@@ -39,12 +39,12 @@ export default function Planos({ perfil, aoSalvar }: { perfil: Perfil | null; ao
           </div>
           <ul>{p.itens.map((i) => <li key={i}>{i}</li>)}</ul>
           {p.id !== "gratis" && (
-            <button className={`btn ${p.id === "pro" ? "btn-cobre" : "btn-claro"}`} style={{ marginTop: 14 }}
+            <button className={`btn ${p.id === "pro" ? "btn-dourado" : "btn-claro"}`} style={{ marginTop: 14 }}
               onClick={() => setAviso(p.id)}>
               {perfil?.plano === p.id ? <><Check size={18} /> Seu plano</> : `Assinar ${p.nome}`}
             </button>
           )}
-          {aviso === p.id && <p className="sub" style={{ marginTop: 10, color: "var(--cobre-escuro)" }}>Pagamentos em breve! Fale com a gente para liberar seu plano.</p>}
+          {aviso === p.id && <p className="sub" style={{ marginTop: 10, color: "var(--dourado-escuro)" }}>Pagamentos em breve! Fale com a gente para liberar seu plano.</p>}
         </div>
       ))}
 

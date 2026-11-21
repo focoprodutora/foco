@@ -9,6 +9,15 @@ const CONFIANCA = {
   baixa: "Confiança baixa: a foto dificulta a avaliação, trate como indicativo",
 } as const;
 
+// Mesma régua usada nas instruções da IA (supabase/functions/_shared/analise.ts)
+function nivel(n: number) {
+  if (n >= 9) return "Nível de referência";
+  if (n >= 7) return "Bom, com ajustes pontuais";
+  if (n >= 5) return "Mediano, com problemas visíveis";
+  if (n >= 3) return "Problemas sérios de técnica";
+  return "Precisa refazer";
+}
+
 const ROTULO = { alta: "Prioridade alta", media: "Prioridade média", baixa: "Ajuste fino" } as const;
 
 export default function ResultadoTela({ analise, ir }: { analise: Analise; ir: (t: Tela) => void }) {
@@ -30,19 +39,25 @@ export default function ResultadoTela({ analise, ir }: { analise: Analise; ir: (
       </div>
 
       <div className="cartao-escuro">
-        <p className="eyebrow" style={{ color: "var(--pessego)" }}>{seg.nome}</p>
+        <p className="eyebrow" style={{ color: "var(--dourado-claro)" }}>{seg.nome}</p>
         <div className="hero-resultado" style={{ marginTop: 10 }}>
           {analise.foto_url && <img className="miniatura" src={analise.foto_url} alt="" />}
-          <div style={{ flex: 1 }}>
+          <div className="hero-texto">
             <h2 style={{ fontSize: 20 }}>{r.procedimento_identificado}</h2>
             <p style={{ fontSize: 13, opacity: 0.7, marginTop: 4 }}>{new Date(analise.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}</p>
           </div>
+        </div>
+        <div className="linha-nota">
           <div className="nota" style={{ ["--p" as string]: nota * 10 }}>
             <div>{nota.toFixed(1)}</div>
           </div>
+          <div>
+            <p style={{ fontSize: 12, opacity: 0.7, letterSpacing: "0.12em", textTransform: "uppercase" }}>Nota geral · de 0 a 10</p>
+            <p className="nivel" style={{ marginTop: 4 }}>{nivel(nota)}</p>
+          </div>
         </div>
         <p style={{ marginTop: 16, fontSize: 15, opacity: 0.9 }}>{r.resumo}</p>
-        <p style={{ marginTop: 12, fontSize: 12, color: "var(--pessego)" }}>● {CONFIANCA[r.confianca] ?? CONFIANCA.media}</p>
+        <p style={{ marginTop: 12, fontSize: 12, color: "var(--dourado-claro)" }}>● {CONFIANCA[r.confianca] ?? CONFIANCA.media}</p>
       </div>
 
       {!r.foto.adequada && (
@@ -89,11 +104,11 @@ export default function ResultadoTela({ analise, ir }: { analise: Analise; ir: (
       </section>
 
       <section className="dica-ouro">
-        <div className="linha" style={{ gap: 8 }}><Sparkles size={18} color="var(--cobre-escuro)" /><h3>Dica de ouro</h3></div>
+        <div className="linha" style={{ gap: 8 }}><Sparkles size={18} color="var(--dourado-escuro)" /><h3>Dica de ouro</h3></div>
         <p style={{ marginTop: 8, fontSize: 15 }}>{r.dica_de_ouro}</p>
       </section>
 
-      {r.foto.adequada && <p className="sub" style={{ fontSize: 13 }}><b>📸 Para o portfólio:</b> {r.foto.dica_para_foto}</p>}
+      {r.foto.adequada && r.foto.dica_para_foto && <p className="sub" style={{ fontSize: 13 }}><b>📸 Para o portfólio:</b> {r.foto.dica_para_foto}</p>}
 
       <button className="btn btn-primario" onClick={() => ir({ nome: "capturar", segmento: analise.segmento })}>
         <Camera size={18} /> Nova análise

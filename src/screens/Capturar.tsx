@@ -82,7 +82,7 @@ export default function Capturar({ segmentoInicial, perfil, voltar, concluido, s
       <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
         {SEGMENTOS.map((s) => (
           <button key={s.id} onClick={() => setSegmento(s.id)} className={`segmento ${s.id === segmento ? "ativo" : ""}`}
-            style={{ padding: "8px 14px", borderRadius: 999, whiteSpace: "nowrap", fontSize: 13, fontWeight: 600, color: "var(--preto)" }}>
+            style={{ padding: "8px 14px", borderRadius: 999, whiteSpace: "nowrap", fontSize: 13, fontWeight: 600, color: "var(--vinho)" }}>
             {s.nome}
           </button>
         ))}
@@ -114,7 +114,7 @@ export default function Capturar({ segmentoInicial, perfil, voltar, concluido, s
       </div>
 
       <div className="dicas">
-        <div className="linha" style={{ gap: 8 }}><Lightbulb size={16} color="var(--cobre-escuro)" /><strong style={{ color: "var(--preto)", fontSize: 14 }}>Para uma análise precisa</strong></div>
+        <div className="linha" style={{ gap: 8 }}><Lightbulb size={16} color="var(--dourado-escuro)" /><strong style={{ color: "var(--vinho)", fontSize: 14 }}>Para uma análise precisa</strong></div>
         <ul>{seg.dicasFoto.map((d) => <li key={d}>{d}</li>)}</ul>
       </div>
 
@@ -136,7 +136,7 @@ export default function Capturar({ segmentoInicial, perfil, voltar, concluido, s
 
       {erro && <div className="aviso"><AlertCircle size={18} />{erro}</div>}
 
-      <button className="btn btn-cobre" disabled={!arquivo} onClick={analisar}>
+      <button className="btn btn-dourado" disabled={!arquivo} onClick={analisar}>
         <Sparkles size={18} /> Analisar procedimento
       </button>
       <p className="sub" style={{ textAlign: "center", fontSize: 12 }}>Usa 1 análise · você tem {perfil?.creditos ?? "–"}. Suas fotos ficam privadas.</p>

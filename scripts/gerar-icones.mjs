@@ -11,7 +11,7 @@ const page = await browser.newPage();
 async function render(size, file, maskable = false) {
   await page.setViewportSize({ width: size, height: size });
   const inner = maskable
-    ? `<div style="width:100%;height:100%;background:#141111;display:grid;place-items:center"><div style="width:70%;height:70%">${svg}</div></div>`
+    ? `<div style="width:100%;height:100%;background:#4a1426;display:grid;place-items:center"><div style="width:70%;height:70%">${svg}</div></div>`
     : svg;
   await page.setContent(`<style>html,body{margin:0;background:transparent}svg{width:100%;height:100%;display:block}</style>${inner}`);
   await page.screenshot({ path: new URL(`../public/icons/${file}`, import.meta.url).pathname, omitBackground: !maskable });

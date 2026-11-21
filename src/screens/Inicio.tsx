@@ -56,9 +56,9 @@ export default function Inicio({ perfil, ir }: { perfil: Perfil | null; ir: (t: 
 
       {instalar && (
         <div className="cartao banner-instalar">
-          <Download size={22} color="var(--cobre-escuro)" />
+          <Download size={22} color="var(--dourado-escuro)" />
           <div style={{ flex: 1 }}>
-            <strong style={{ color: "var(--preto)" }}>Instale o app</strong>
+            <strong style={{ color: "var(--vinho)" }}>Instale o app</strong>
             <p className="sub">Acesso rápido direto da tela inicial.</p>
           </div>
           <button className="btn btn-primario" style={{ width: "auto", padding: "10px 14px" }} onClick={() => instalar.prompt().then(() => setInstalar(null))}>
