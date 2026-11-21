@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, Lightbulb, Sparkles, AlertCircle } from "lucide-react";
+import { ArrowLeft, Camera, Images, Lightbulb, Sparkles, AlertCircle } from "lucide-react";
 import { SEGMENTOS, segmentoPorId } from "../lib/segmentos";
 import { analisarFoto, SemCreditosError, NaoAnalisavelError } from "../lib/api";
 import type { Analise, Perfil } from "../types";
@@ -23,7 +23,8 @@ export default function Capturar({ segmentoInicial, perfil, voltar, concluido, s
   const [etapa, setEtapa] = useState(0);
   const [erro, setErro] = useState("");
   const [recusa, setRecusa] = useState<NaoAnalisavelError | null>(null);
-  const input = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
+  const galeria = useRef<HTMLInputElement>(null);
   const seg = segmentoPorId(segmento);
 
   useEffect(() => {
@@ -87,20 +88,29 @@ export default function Capturar({ segmentoInicial, perfil, voltar, concluido, s
         ))}
       </div>
 
-      <div className="area-foto" onClick={() => !preview && input.current?.click()}>
+      <div className="area-foto">
         {preview ? (
           <>
             <img src={preview} alt="Foto do procedimento" />
-            <button className="trocar" onClick={() => input.current?.click()}>Trocar foto</button>
+            <div className="trocar-grupo">
+              <button className="trocar" onClick={() => camera.current?.click()}><Camera size={14} /> Câmera</button>
+              <button className="trocar" onClick={() => galeria.current?.click()}><Images size={14} /> Galeria</button>
+            </div>
           </>
         ) : (
           <div className="vazio">
             <div className="bola"><Camera size={30} /></div>
             <h3>Tire ou envie uma foto</h3>
             <p className="sub" style={{ marginTop: 4 }}>Use a câmera ou escolha da galeria</p>
+            <div className="botoes-foto">
+              <button className="btn btn-primario" onClick={() => camera.current?.click()}><Camera size={18} /> Tirar foto</button>
+              <button className="btn btn-claro" onClick={() => galeria.current?.click()}><Images size={18} /> Escolher da galeria</button>
+            </div>
           </div>
         )}
-        <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={(e) => escolher(e.target.files?.[0])} />
+        {/* Câmera: abre direto a câmera traseira. Galeria: sem "capture", o celular mostra fotos e arquivos. */}
+        <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { escolher(e.target.files?.[0]); e.target.value = ""; }} />
+        <input ref={galeria} type="file" accept="image/*" hidden onChange={(e) => { escolher(e.target.files?.[0]); e.target.value = ""; }} />
       </div>
 
       <div className="dicas">
