@@ -391,11 +391,17 @@ p { margin: 0 0 1rem; }
 .service li { position: relative; padding-left: 1.4rem; font-size: .93rem; color: var(--mocha); }
 .service li::before { content: "✦"; position: absolute; left: 0; top: 0; color: var(--gold); font-size: .7rem; line-height: 1.9; }
 .service__link {
-  margin-top: auto; display: inline-flex; align-items: center; gap: .5rem;
-  font-weight: 500; font-size: .88rem; letter-spacing: .06em; color: var(--terracotta);
+  margin-top: auto; align-self: flex-start;
+  display: inline-flex; align-items: center; gap: .55rem;
+  padding: .75rem 1.15rem; border-radius: 999px;
+  font-weight: 500; font-size: .85rem; letter-spacing: .05em; color: var(--terracotta);
+  border: 1px solid rgba(140, 76, 40, .3);
+  transition: background .35s, color .35s, border-color .35s;
 }
-.service__link .ico { transition: transform .4s var(--ease); }
-.service__link:hover .ico { transform: translateX(5px); }
+.service__link .ico--wa { width: 1.2em; height: 1.2em; }
+.service__link .ico--arrow { transition: transform .4s var(--ease); }
+.service__link:hover { background: var(--terracotta); color: var(--white); border-color: var(--terracotta); }
+.service__link:hover .ico--arrow { transform: translateX(4px); }
 
 .service--featured {
   background: linear-gradient(160deg, var(--terracotta-2) 0%, var(--terracotta) 55%, #6E3A1E 100%);
@@ -406,7 +412,8 @@ p { margin: 0 0 1rem; }
 .service--featured > p, .service--featured li { color: rgba(251, 246, 240, .82); }
 .service--featured .service__tag { color: var(--gold-light); }
 .service--featured .service__icon { background: rgba(255,255,255,.1); color: var(--gold-light); border-color: rgba(230, 203, 142, .5); }
-.service--featured .service__link { color: var(--gold-light); }
+.service--featured .service__link { color: var(--gold-light); border-color: rgba(230, 203, 142, .5); }
+.service--featured .service__link:hover { background: var(--gold-light); color: var(--terracotta); border-color: var(--gold-light); }
 .service__ribbon {
   position: absolute; top: 1.5rem; right: 1.5rem;
   font-size: .66rem; letter-spacing: .2em; text-transform: uppercase; font-weight: 600;
